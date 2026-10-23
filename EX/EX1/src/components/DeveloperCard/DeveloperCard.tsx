@@ -1,6 +1,7 @@
 import { Fragment, useId, useState } from 'react';
 import { SkillBadge } from '../SkillBadge/SkillBadge';
 import type { DeveloperCardProps } from './DeveloperCard.types';
+import styles from './DeveloperCard.module.css';
 
 function Avatar({ src, fullName }: { src: string; fullName: string }) {
   const [hasError, setHasError] = useState(false);
@@ -15,11 +16,12 @@ function Avatar({ src, fullName }: { src: string; fullName: string }) {
   }
 
   if (!isHttps || hasError) {
-    return <span role="img" aria-label={`Ảnh đại diện của ${fullName}`}>{initials}</span>;
+    return <span className={styles.avatar} role="img" aria-label={`Ảnh đại diện của ${fullName}`}>{initials}</span>;
   }
 
   return (
     <img
+      className={styles.avatar}
       src={src}
       width={64}
       height={64}
@@ -43,15 +45,15 @@ export function DeveloperCard({
   const headingId = useId();
 
   return (
-    <article aria-labelledby={headingId}>
-      <header>
+    <article className={styles.card} aria-labelledby={headingId}>
+      <header className={styles.header}>
         <Avatar key={avatarUrl} src={avatarUrl} fullName={fullName} />
-        <hgroup>
-          <h2 id={headingId}>{fullName}</h2>
-          <p>{role}</p>
+        <hgroup className={styles.identity}>
+          <h2 className={styles.name} id={headingId}>{fullName}</h2>
+          <p className={styles.role}>{role}</p>
         </hgroup>
       </header>
-      <dl>
+      <dl className={styles.metrics}>
         {Object.entries(metrics).map(([label, value]) => (
           <Fragment key={label}>
             <dt>{label}</dt>
@@ -59,7 +61,7 @@ export function DeveloperCard({
           </Fragment>
         ))}
       </dl>
-      <ul aria-label="Kỹ năng">
+      <ul className={styles.skills} aria-label="Kỹ năng">
         {skills.map((skill) => (
           <li key={skill.id}><SkillBadge skill={skill} /></li>
         ))}

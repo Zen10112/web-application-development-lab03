@@ -1,0 +1,103 @@
+.card {
+  --profile-bg: #141b25;
+  --profile-surface: #1e2938;
+  --profile-border: #364459;
+  --profile-text: #f3f6fb;
+  --profile-muted: #b2bfd0;
+  --profile-accent: #f4c76b;
+  box-sizing: border-box;
+  width: 720px;
+  margin: 32px 0;
+  padding: 32px;
+  border: 1px solid var(--profile-border);
+  border-top: 4px solid var(--profile-accent);
+  border-radius: 16px;
+  background: var(--profile-bg);
+  color: var(--profile-text);
+  box-shadow: 0 16px 40px rgb(15 23 42 / 18%);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--profile-border);
+}
+
+.avatar {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 64px;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--profile-accent, #f4c76b);
+  border-radius: 14px;
+  background: var(--profile-surface, #1e2938);
+  color: var(--profile-accent, #f4c76b);
+  object-fit: cover;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.identity {
+  margin: 0;
+}
+
+.name {
+  margin: 0;
+  color: var(--profile-text);
+  font-size: 32px;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+}
+
+.role {
+  margin: 8px 0 0;
+  color: var(--profile-muted);
+  font-size: 14px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: 172px 1fr;
+  gap: 16px 24px;
+  margin: 28px 0;
+  font-size: 14px;
+}
+
+.metrics dt {
+  color: var(--profile-muted);
+}
+
+.metrics dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.skills {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 24px 0 0;
+  border-top: 1px solid var(--profile-border);
+  list-style: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--profile-accent, #f4c76b);
+  border-radius: 6px;
+  background: var(--profile-surface, #1e2938);
+  color: var(--profile-accent, #f4c76b);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
