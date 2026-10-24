@@ -5,12 +5,23 @@ export function ScientistDirectory() {
   const headingId = useId();
   const searchId = useId();
   const iqId = useId();
+  const sortId = useId();
   const [query, setQuery] = useState('');
   const [minIq, setMinIq] = useState(160);
+  const [sortBy, setSortBy] = useState('iq-desc');
   const normalizedQuery = query.trim().toLowerCase();
-  const visiblePeople = SMART_PEOPLE.filter((person) =>
-    person.name.toLowerCase().includes(normalizedQuery) && person.iq >= minIq,
-  );
+  const visiblePeople = SMART_PEOPLE
+    .filter((person) =>
+      person.name.toLowerCase().includes(normalizedQuery) && person.iq >= minIq,
+    )
+    .toSorted((a, b) => {
+      switch (sortBy) {
+        case 'iq-asc': return a.iq - b.iq;
+        case 'age-asc': return a.age - b.age;
+        case 'age-desc': return b.age - a.age;
+        default: return b.iq - a.iq;
+      }
+    });
 
   return (
     <section aria-labelledby={headingId}>
@@ -33,6 +44,17 @@ export function ScientistDirectory() {
             setMinIq(Number.isNaN(value) ? 0 : value);
           }}
         />
+        <label htmlFor={sortId}>Sắp xếp theo</label>
+        <select
+          id={sortId}
+          value={sortBy}
+          onChange={(event) => setSortBy(event.target.value)}
+        >
+          <option value="iq-desc">IQ giảm dần</option>
+          <option value="iq-asc">IQ tăng dần</option>
+          <option value="age-asc">Tuổi tăng dần</option>
+          <option value="age-desc">Tuổi giảm dần</option>
+        </select>
       </form>
       <ul>
         {visiblePeople.map((person) => (
