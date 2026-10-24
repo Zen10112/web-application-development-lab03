@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { SMART_PEOPLE } from '../data/smartPeople';
 
 export function ScientistDirectory() {
@@ -6,11 +6,14 @@ export function ScientistDirectory() {
   const searchId = useId();
   const iqId = useId();
   const sortId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const deleteButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [people, setPeople] = useState(SMART_PEOPLE);
   const [query, setQuery] = useState('');
   const [minIq, setMinIq] = useState(160);
   const [sortBy, setSortBy] = useState('iq-desc');
   const normalizedQuery = query.trim().toLowerCase();
-  const visiblePeople = SMART_PEOPLE
+  const visiblePeople = people
     .filter((person) =>
       person.name.toLowerCase().includes(normalizedQuery) && person.iq >= minIq,
     )
@@ -23,12 +26,31 @@ export function ScientistDirectory() {
       }
     });
 
+  function handleDelete(id: string) {
+    const index = visiblePeople.findIndex((person) => person.id === id);
+    const nextPerson = visiblePeople[index + 1] ?? visiblePeople[index - 1];
+    // Move focus before removing the focused button; stable IDs preserve its target.
+    const focusTarget = nextPerson
+      ? deleteButtonRefs.current.get(nextPerson.id)
+      : searchRef.current;
+    focusTarget?.focus();
+    setPeople((previous) => previous.filter((person) => person.id !== id));
+  }
+
+  function handleReset() {
+    setPeople(SMART_PEOPLE);
+    setQuery('');
+    setMinIq(160);
+    setSortBy('iq-desc');
+  }
+
   return (
     <section aria-labelledby={headingId}>
       <h2 id={headingId}>Danh sách nhà khoa học và người tiên phong</h2>
       <form role="search" onSubmit={(event) => event.preventDefault()}>
         <label htmlFor={searchId}>Tìm kiếm theo tên</label>
         <input
+          ref={searchRef}
           id={searchId}
           type="search"
           value={query}
@@ -55,7 +77,12 @@ export function ScientistDirectory() {
           <option value="age-asc">Tuổi tăng dần</option>
           <option value="age-desc">Tuổi giảm dần</option>
         </select>
+        <button type="button" onClick={handleReset}>Reset</button>
       </form>
+      <output role="status" aria-live="polite">
+        Hiển thị {visiblePeople.length} / {people.length} người.
+        {visiblePeople.length === 0 && ' Không có kết quả phù hợp.'}
+      </output>
       <ul>
         {visiblePeople.map((person) => (
           <li key={person.id}>
@@ -67,6 +94,17 @@ export function ScientistDirectory() {
                 <dt>IQ</dt>
                 <dd>{person.iq}</dd>
               </dl>
+              <button
+                type="button"
+                aria-label={`Xóa ${person.name}`}
+                ref={(node) => {
+                  if (node) deleteButtonRefs.current.set(person.id, node);
+                  else deleteButtonRefs.current.delete(person.id);
+                }}
+                onClick={() => handleDelete(person.id)}
+              >
+                Delete
+              </button>
             </article>
           </li>
         ))}
