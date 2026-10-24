@@ -4,10 +4,12 @@ import { SMART_PEOPLE } from '../data/smartPeople';
 export function ScientistDirectory() {
   const headingId = useId();
   const searchId = useId();
+  const iqId = useId();
   const [query, setQuery] = useState('');
+  const [minIq, setMinIq] = useState(160);
   const normalizedQuery = query.trim().toLowerCase();
   const visiblePeople = SMART_PEOPLE.filter((person) =>
-    person.name.toLowerCase().includes(normalizedQuery),
+    person.name.toLowerCase().includes(normalizedQuery) && person.iq >= minIq,
   );
 
   return (
@@ -20,6 +22,16 @@ export function ScientistDirectory() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+        />
+        <label htmlFor={iqId}>IQ tối thiểu</label>
+        <input
+          id={iqId}
+          type="number"
+          value={minIq}
+          onChange={(event) => {
+            const value = event.currentTarget.valueAsNumber;
+            setMinIq(Number.isNaN(value) ? 0 : value);
+          }}
         />
       </form>
       <ul>
