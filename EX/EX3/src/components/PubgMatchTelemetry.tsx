@@ -2,6 +2,8 @@ import { useEffect, useId, useState } from 'react';
 import { fetchPubgTelemetry } from '../api/pubgTelemetry';
 import { PUBG_VN_SQUADS } from '../data/pubgSquads';
 import type { PubgSquad, SquadId, ViewState } from '../types/pubg';
+import { TelemetrySkeleton } from './TelemetrySkeleton';
+import styles from './PubgMatchTelemetry.module.css';
 
 export function PubgMatchTelemetry() {
   const headingId = useId();
@@ -30,9 +32,9 @@ export function PubgMatchTelemetry() {
   }, [selectedSquadId]);
 
   return (
-    <section aria-labelledby={headingId}>
+    <section className={styles.widget} aria-labelledby={headingId}>
       <h2 id={headingId}>Đội tuyển PVS</h2>
-      <fieldset>
+      <fieldset className={styles.selector}>
         <legend>Chọn đội tuyển</legend>
         <ul>
           {PUBG_VN_SQUADS.map((squad) => (
@@ -50,12 +52,12 @@ export function PubgMatchTelemetry() {
           ))}
         </ul>
       </fieldset>
-      <p>Đội đang chọn: {selectedSquad?.name}</p>
-      {view.status === 'IDLE' && <p role="status">Sẵn sàng tải telemetry.</p>}
-      {view.status === 'LOADING' && <p role="status">Đang tải telemetry...</p>}
-      {view.status === 'ERROR' && <p role="alert">{view.error}</p>}
+      <p className={styles.selected}>Đội đang chọn: {selectedSquad?.name}</p>
+      {view.status === 'IDLE' && <p className={styles.panel} role="status">Sẵn sàng tải telemetry.</p>}
+      {view.status === 'LOADING' && <TelemetrySkeleton />}
+      {view.status === 'ERROR' && <p className={styles.panel} role="alert">{view.error}</p>}
       {view.status === 'SUCCESS' && (
-        <article aria-label={`Telemetry ${view.data.name}`}>
+        <article className={styles.panel} aria-label={`Telemetry ${view.data.name}`}>
           <h3>{view.data.name}</h3>
           <dl>
             <dt>Map</dt><dd>{view.data.map}</dd>

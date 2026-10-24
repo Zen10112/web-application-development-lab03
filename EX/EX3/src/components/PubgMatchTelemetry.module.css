@@ -1,0 +1,127 @@
+.widget {
+  --telemetry-bg: #101f35;
+  --telemetry-border: #4874a5;
+  --telemetry-text: #edf5ff;
+  --telemetry-muted: #b9d2ed;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+  min-width: 0;
+  font-family: system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.selector {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #879bb3;
+  border-radius: 8px;
+}
+
+.selector ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.selector li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.selector input {
+  flex-shrink: 0;
+}
+
+.selected {
+  margin: 1rem 0;
+}
+
+.panel {
+  box-sizing: border-box;
+  min-height: 220px;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--telemetry-border);
+  border-radius: 12px;
+  background: var(--telemetry-bg);
+  color: var(--telemetry-text);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.panel h3,
+.panel p {
+  margin: 0 0 0.5rem;
+}
+
+.panel h3 {
+  font-size: 1rem;
+}
+
+.panel dl {
+  display: grid;
+  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.panel dt {
+  color: var(--telemetry-muted);
+}
+
+.panel dd {
+  margin: 0;
+}
+
+.skeleton {
+  height: 220px;
+  background: linear-gradient(135deg, #101f35, #163d66);
+}
+
+.placeholders {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.placeholder {
+  height: 1rem;
+  border-radius: 4px;
+  background: #73baff;
+  animation: blueZonePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes blueZonePulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.75; }
+}
+
+@media (max-width: 30rem) {
+  .selector ul {
+    flex-direction: column;
+  }
+
+  .panel {
+    padding: 0.75rem;
+  }
+
+  .panel dl {
+    grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr);
+    column-gap: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placeholder {
+    animation: none;
+    opacity: 0.5;
+  }
+}
