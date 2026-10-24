@@ -11,24 +11,22 @@ export function PubgMatchTelemetry() {
   const selectedSquad = PUBG_VN_SQUADS.find((squad) => squad.id === selectedSquadId);
 
   useEffect(() => {
-    let active = true;
+    const controller = new AbortController();
     setView({ status: 'LOADING' });
 
-    fetchPubgTelemetry(selectedSquadId)
+    fetchPubgTelemetry(selectedSquadId, { signal: controller.signal })
       .then((data) => {
-        if (active) setView({ status: 'SUCCESS', data });
+        if (!controller.signal.aborted) setView({ status: 'SUCCESS', data });
       })
       .catch((error: unknown) => {
-        if (active) {
-          setView({
-            status: 'ERROR',
-            error: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.',
-          });
-        }
+        if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) return;
+        setView({
+          status: 'ERROR',
+          error: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.',
+        });
       });
 
-    // Ignore outdated responses; request cancellation is added in a later step.
-    return () => { active = false; };
+    return () => controller.abort();
   }, [selectedSquadId]);
 
   return (
