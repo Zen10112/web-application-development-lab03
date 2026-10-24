@@ -1,5 +1,11 @@
 export type SquadId = 'ces' | 'te' | 'ge';
 
+export type ViewState<T> =
+  | { readonly status: 'IDLE' }
+  | { readonly status: 'LOADING' }
+  | { readonly status: 'SUCCESS'; readonly data: T }
+  | { readonly status: 'ERROR'; readonly error: string };
+
 export interface PubgSquad {
   readonly id: SquadId;
   readonly name: string;
