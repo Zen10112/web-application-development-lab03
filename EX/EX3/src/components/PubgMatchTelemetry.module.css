@@ -80,6 +80,28 @@
   margin: 0;
 }
 
+.retry {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid #a6d5ff;
+  border-radius: 6px;
+  background: #a6d5ff;
+  color: #101f35;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: #d3eaff;
+}
+
+.retry:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+}
+
 .skeleton {
   height: 220px;
   background: linear-gradient(135deg, #101f35, #163d66);

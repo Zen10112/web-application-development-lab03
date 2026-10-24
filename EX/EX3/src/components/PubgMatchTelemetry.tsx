@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { fetchPubgTelemetry } from '../api/pubgTelemetry';
 import { PUBG_VN_SQUADS } from '../data/pubgSquads';
 import type { PubgSquad, SquadId, ViewState } from '../types/pubg';
@@ -10,11 +10,14 @@ export function PubgMatchTelemetry() {
   const groupId = useId();
   const [selectedSquadId, setSelectedSquadId] = useState<SquadId>('te');
   const [view, setView] = useState<ViewState<PubgSquad>>({ status: 'IDLE' });
+  const [retryTick, setRetryTick] = useState(0);
+  const retryLocked = useRef(false);
   const selectedSquad = PUBG_VN_SQUADS.find((squad) => squad.id === selectedSquadId);
 
   useEffect(() => {
     const controller = new AbortController();
     setView({ status: 'LOADING' });
+    retryLocked.current = false;
 
     fetchPubgTelemetry(selectedSquadId, { signal: controller.signal })
       .then((data) => {
@@ -29,7 +32,14 @@ export function PubgMatchTelemetry() {
       });
 
     return () => controller.abort();
-  }, [selectedSquadId]);
+  }, [selectedSquadId, retryTick]);
+
+  function handleRetry() {
+    if (view.status !== 'ERROR' || retryLocked.current) return;
+    retryLocked.current = true;
+    setView({ status: 'LOADING' });
+    setRetryTick((previous) => previous + 1);
+  }
 
   return (
     <section className={styles.widget} aria-labelledby={headingId}>
@@ -55,7 +65,15 @@ export function PubgMatchTelemetry() {
       <p className={styles.selected}>Đội đang chọn: {selectedSquad?.name}</p>
       {view.status === 'IDLE' && <p className={styles.panel} role="status">Sẵn sàng tải telemetry.</p>}
       {view.status === 'LOADING' && <TelemetrySkeleton />}
-      {view.status === 'ERROR' && <p className={styles.panel} role="alert">{view.error}</p>}
+      {view.status === 'ERROR' && (
+        <section className={styles.panel} role="alert">
+          <h3>Mất kết nối vệ tinh</h3>
+          <p>{view.error}</p>
+          <button className={styles.retry} type="button" onClick={handleRetry}>
+            Reconnect Satellite
+          </button>
+        </section>
+      )}
       {view.status === 'SUCCESS' && (
         <article className={styles.panel} aria-label={`Telemetry ${view.data.name}`}>
           <h3>{view.data.name}</h3>
