@@ -1,10 +1,12 @@
 import { useId } from 'react';
 import type { DropPhase, PubgCrateDrop } from '../domain/pubg-vn-arena-contract';
 import { formatVnd } from '../domain/formatVnd';
+import { usePubgAirdropTimer } from '../hooks/usePubgAirdropTimer';
+import { Countdown } from './Countdown';
 
 const phaseContent: Record<DropPhase, { label: string; action: string; description: string }> = {
   WARMUP: { label: 'Warmup', action: 'Claim · Not open yet', description: 'Waiting for the scheduled drop to open.' },
-  AIRDROP_LIVE: { label: 'Airdrop live', action: 'Claim drop', description: 'Preview: this drop is open for claims.' },
+  AIRDROP_LIVE: { label: 'Airdrop live', action: 'Claim drop', description: 'The opening time has been reached. Claims remain a UI preview.' },
   LOOTED_OUT: { label: 'Looted out', action: 'Claim · Sold out', description: 'All available stock has been claimed.' },
   EXPIRED: { label: 'Expired', action: 'Claim · Drop ended', description: 'The claim window has closed.' },
 };
@@ -14,13 +16,16 @@ const openingFormatter = new Intl.DateTimeFormat('en-GB', {
 
 interface DropCardProps {
   readonly drop: PubgCrateDrop;
-  readonly phase: DropPhase;
+  readonly previewPhase?: DropPhase;
+  readonly serverOffsetMs?: number;
   readonly onClaim?: (id: string) => void;
 }
 
-export function DropCard({ drop, phase, onClaim }: DropCardProps) {
+export function DropCard({ drop, previewPhase, serverOffsetMs = 0, onClaim }: DropCardProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const { remainingMs, isLive } = usePubgAirdropTimer(drop.dropEpochMs, serverOffsetMs);
+  const phase = previewPhase ?? (isLive ? (drop.remainingStock > 0 ? 'AIRDROP_LIVE' : 'LOOTED_OUT') : 'WARMUP');
   const content = phaseContent[phase];
   const canClaim = phase === 'AIRDROP_LIVE' && drop.remainingStock > 0 && Boolean(onClaim);
   return (
@@ -38,6 +43,8 @@ export function DropCard({ drop, phase, onClaim }: DropCardProps) {
         <div><dt>Remaining stock</dt><dd>{drop.remainingStock}<span> available</span></dd></div>
         <div><dt>Drop opens · UTC+7</dt><dd><time dateTime={new Date(drop.dropEpochMs).toISOString()}>{openingFormatter.format(drop.dropEpochMs)}</time></dd></div>
       </dl>
+      <Countdown remainingMs={remainingMs} />
+      {previewPhase && <p className="preview-override">State override: {content.label}. Countdown shows the actual mock schedule.</p>}
       <p className="phase-description" id={descriptionId}>{content.description}</p>
       <button className="claim-button" type="button" disabled={!canClaim} aria-describedby={descriptionId}
         aria-label={`${content.action}: ${drop.title}`} onClick={() => onClaim?.(drop.id)}>

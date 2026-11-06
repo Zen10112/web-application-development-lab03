@@ -6,7 +6,7 @@ import { DropList } from './DropList';
 
 export function Arena() {
   const phaseId = useId();
-  const [phase, setPhase] = useState<DropPhase>('WARMUP');
+  const [phase, setPhase] = useState<DropPhase | 'AUTO'>('AUTO');
   const [notice, setNotice] = useState('No claims are submitted in this UI preview.');
   const previewDrops = phase === 'LOOTED_OUT'
     ? MOCK_ARENA_DATA.drops.map((drop) => ({ ...drop, remainingStock: 0 })) : MOCK_ARENA_DATA.drops;
@@ -31,13 +31,14 @@ export function Arena() {
         <section id="drops" aria-labelledby="drops-title">
           <header className="section-heading"><h2 id="drops-title"><span>01 /</span> THE DROP ZONE</h2><span>VIP ACCESS & G-COIN</span></header>
           <section className="preview-toolbar" aria-label="Drop state preview">
-            <p><strong>UI preview</strong><span>Inspect the four drop states. Dates below are fixed mock fixtures.</span></p>
+            <p><strong>Mock schedule / UI preview</strong><span>Automatic follows the opening time. Other options override the badge for UI testing.</span></p>
             <label htmlFor={phaseId}>Preview state</label>
-            <select id={phaseId} value={phase} onChange={(event) => { setPhase(event.target.value as DropPhase); setNotice('No claims are submitted in this UI preview.'); }}>
+            <select id={phaseId} value={phase} onChange={(event) => { setPhase(event.target.value as DropPhase | 'AUTO'); setNotice('No claims are submitted in this UI preview.'); }}>
+              <option value="AUTO">AUTOMATIC</option>
               {DROP_PHASES.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
             </select>
           </section>
-          <DropList drops={previewDrops} phase={phase} onClaim={claimPreview} />
+          <DropList drops={previewDrops} previewPhase={phase === 'AUTO' ? undefined : phase} onClaim={claimPreview} />
           <p className="claim-notice" role="status">{notice}</p>
         </section>
         <section className="arena-intel" aria-label="Squad intelligence">
