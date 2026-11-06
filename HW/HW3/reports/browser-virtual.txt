@@ -1,0 +1,27 @@
+PASS: 100: at most 10 rows mounted for full data
+PASS: 100: one scroll listener and one observer under StrictMode
+PASS: 100: exact fixed row geometry
+PASS: 100: repeated scrolling keeps DOM bounded
+PASS: 100: live prepend preserves historical event and pixel offset
+PASS: 100: filtering while scrolled resets position and window
+PASS: 100: filter change during simulation uses current squad
+PASS: 100: unmount clears interval, scroll listener, observer and frame
+MEASURE: 100 events; peak DOM rows 9; StrictMode mount 32.40ms; 20 controlled scroll checks plus live/filter/cleanup assertions 88.10ms (not FPS)
+PASS: 1000: at most 10 rows mounted for full data
+PASS: 1000: one scroll listener and one observer under StrictMode
+PASS: 1000: exact fixed row geometry
+PASS: 1000: repeated scrolling keeps DOM bounded
+PASS: 1000: live prepend preserves historical event and pixel offset
+PASS: 1000: filtering while scrolled resets position and window
+PASS: 1000: filter change during simulation uses current squad
+PASS: 1000: unmount clears interval, scroll listener, observer and frame
+MEASURE: 1000 events; peak DOM rows 9; StrictMode mount 6.50ms; 20 controlled scroll checks plus live/filter/cleanup assertions 91.80ms (not FPS)
+PASS: 10000: at most 10 rows mounted for full data
+PASS: 10000: one scroll listener and one observer under StrictMode
+PASS: 10000: exact fixed row geometry
+PASS: 10000: repeated scrolling keeps DOM bounded
+PASS: 10000: live prepend preserves historical event and pixel offset
+PASS: 10000: filtering while scrolled resets position and window
+PASS: 10000: filter change during simulation uses current squad
+PASS: 10000: unmount clears interval, scroll listener, observer and frame
+MEASURE: 10000 events; peak DOM rows 9; StrictMode mount 6.80ms; 20 controlled scroll checks plus live/filter/cleanup assertions 143.50ms (not FPS)

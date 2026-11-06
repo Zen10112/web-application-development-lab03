@@ -2,6 +2,8 @@
 
 React 19, TypeScript (strict) and Vite. HW3 started from an empty directory in the domain-foundation step; HW1/HW2 and the existing parent project-rules.md are unchanged.
 
+The final QA section below supersedes earlier milestone test counts and Lighthouse Not Tested notes. Development history and verified defects are recorded in [TASK_DECOMPOSITION.md](TASK_DECOMPOSITION.md) and [AI_FAILURE_AUDIT.md](AI_FAILURE_AUDIT.md).
+
 ```sh
 npm install
 npm run dev
@@ -125,3 +127,44 @@ Use **Open 10,000-event preview** on the same fixture for native scrolling. Page
 React DevTools Profiler UI, production FPS/CPU traces, long-duration heap profiling and real assistive technology are **NOT TESTED**. Match updates have no asynchronous HTTP request to abort; unmount of an actual pending mock Claim is covered by the unchanged claim regression fixture. Browser background throttling can delay simulation delivery, but each delivered step is atomic and stale run callbacks are rejected.
 
 After virtualization, all **12 Countdown**, **9 Claim** (including an actual pending async unmount) and **8 Match lifecycle** browser regression assertions passed. Console warning/error logs were empty. The existing project-rules.md and all HW1/HW2 code remain unchanged.
+
+## Final HW3 quality assurance
+
+Baseline 07f8c18 was reviewed with the complete production source and Git history. The initial 53 existing Node tests/build passed; additional inventory-read fault tests exposed two related claim-handling defects across three failing paths. The before/after logs and an accessibility diagnostic are documented in AI_FAILURE_AUDIT.md. Fixes are limited to Claim Client read/recovery handling and the brand link's native accessible name. No unrelated feature or dependency was added.
+
+Final checks on November 6, 2026:
+
+| Requested area | Result | Evidence and limits |
+| --- | --- | --- |
+| A — TypeScript contracts, four phases, products, VND, stock | PASS | Strict build, domain tests and production UI JSON; expiry is an explicit mock scenario because the domain supplies no expiry epoch |
+| A/E — Desktop and 375px reflow | PASS | 1440px clientWidth=scrollWidth=1425px; 375px clientWidth=scrollWidth=360px; only the 590px table scrolls inside its 327px region |
+| A/E — Semantics, labels, keyboard focus and targets | PASS within inspected scope | One main/nav, native buttons/table, all form controls labeled, Tab visible outline, Enter Claim, targets approximately 291×45px; brand name matches visible text |
+| B — Formula, offset, target change, completion, delayed ticks, visibility resync and cleanup | PASS in controlled tests | 8 timer Node cases and 12 actual-hook assertions; no tick decrement, no duplicate timer/listener after StrictMode remount |
+| B — Prolonged real background throttling / actual server clock | NOT TESTED | Delay/visibility tests simulate the conditions; they do not measure OS/browser throttling policy or a remote server |
+| C — Optimistic deduction, locks/IDs, last item, 409 rollback, ordering and no overselling | PASS for shared mock authority | Existing claim cases plus 50 concurrent final-item requests: 1 success, 49 conflicts, stock 0 |
+| C — Network/read failure, timeout, cancellation and async unmount | PASS in specified fault model | Injected failures including reads before/after request, response lost after commit, stale delivery and uncooperative timeout; real async mock Claim browser fixture cancels on unmount |
+| D — Four squads, scores/totals, all sort criteria, squad/name filters and immutable derived data | PASS | Pure selector tests, match fixture and production UI checks; Total Points remains calculated, not separate state |
+| D/E — Virtual Scroller, live-history anchor, retention and resource cleanup | PASS in measured scope | 100/1,000/10,000 events, peak 9 mounted rows; 24 stress assertions, one listener/observer/interval, cleanup to zero and no queued stale update |
+| D — Match HTTP polling / AbortController | NOT APPLICABLE | Source steps are synchronous local simulation; generation tokens reject old timer runs. No match network request exists to abort; Claim has AbortController coverage |
+| E — Automated tests | PASS | 57 Node tests and 53 browser assertions (12 timer + 9 Claim + 8 match + 24 virtual), reports/tests-final.txt and browser-*.txt |
+| E — Production build / TypeScript | PASS | reports/build-final.txt; strict/noUnused checks include the browser fixtures |
+| E — Lint | NOT TESTED | No lint script/configuration/dependency exists; none was installed just to claim a pass |
+| E — Lighthouse Accessibility | PASS, measured 100 | Lighthouse 13.6.0 against production localhost:4173 default AUTO state; final JSON has no failing binary audits |
+| A/D/E — Full WCAG 2.2 AA / actual screen-reader products | NOT TESTED as a complete certification | Automated contrast/semantics checks and scoped native keyboard/AX inspection passed; NVDA/JAWS/VoiceOver/voice-control and all manual success criteria were not exercised |
+| E — Heap profiling / DevTools Profiler / production FPS / all browsers | NOT TESTED | Resource counters, immutable retention and DOM bounds are evidence for their tested scope only |
+| F/G — WBS and AI failure audit | Completed | Real six-commit history, three verified findings (two related Claim defects + one accessibility defect), before/after evidence and no invented hashes |
+
+Inventory-read failures are now reported safely. Preflight failures send no request. A confirmed claim stays confirmed even if the latest refresh fails; pending state is released and the UI explicitly says stock is last-confirmed. Failed rollback reads also release the lock and warn about uncertain freshness, rather than throwing or falsely announcing synchronization. A later attempt must read authority successfully before dispatching a new request.
+
+Lighthouse's baseline Accessibility score was already 100, despite a zero-weight hidden `label-content-name-mismatch` diagnostic failing on the brand link. That diagnostic changed from 0 to 1 after removing the overriding aria-label/aria-hidden. The weighted score stayed 100. This distinction is why the audit records both the real defect and the real score, without claiming a fabricated improvement or complete WCAG compliance.
+
+Evidence files: reports/reliability-before.txt (three newly reproduced failures on baseline), reliability-after.txt (four final targeted checks), tests-final.txt, build-final.txt, git-history-before.txt, browser-*.txt/json and lighthouse-before.json / lighthouse-after.json. The final virtual run measured peak nine rows for each size; its actual development timings are in browser-virtual.txt, not a production FPS claim. No final executed assertion remains FAIL.
+
+To reproduce browser fixtures, use `npm run dev`, open each tests/timer.html, claims.html, match.html and virtual.html and run its verification button. For Lighthouse, first build and run `npm run preview -- --host 127.0.0.1`, then use the transient CLI (Chrome must be installed):
+
+```powershell
+$env:CHROME_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+npm exec --yes --package=lighthouse -- lighthouse http://127.0.0.1:4173/ --only-categories=accessibility --chrome-flags='--headless --disable-gpu --no-sandbox' --output=json --output-path=reports/lighthouse-after.json
+```
+
+Official live PUBG data, a remote multi-device inventory server and persistent/authenticated transactions remain outside the implemented mock application. Project rules and unrelated files were left unchanged.

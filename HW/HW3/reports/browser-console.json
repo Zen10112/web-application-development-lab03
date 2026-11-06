@@ -1,0 +1,22 @@
+[
+  {
+    "url": "http://127.0.0.1:5173/tests/timer.html",
+    "logs": []
+  },
+  {
+    "url": "http://127.0.0.1:5173/tests/claims.html",
+    "logs": []
+  },
+  {
+    "url": "http://127.0.0.1:5173/tests/match.html",
+    "logs": []
+  },
+  {
+    "url": "http://127.0.0.1:5173/tests/virtual.html",
+    "logs": []
+  },
+  {
+    "url": "http://127.0.0.1:4173/",
+    "logs": []
+  }
+]

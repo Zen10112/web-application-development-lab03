@@ -1,0 +1,137 @@
+{
+  "desktop": {
+    "client": 1425,
+    "prices": [
+      "1.500.000 ₫VND · Mock price",
+      "990.000 ₫VND · Mock price"
+    ],
+    "scroll": 1425,
+    "totals": [
+      "112",
+      "103",
+      "88",
+      "78"
+    ],
+    "viewport": 1440
+  },
+  "phases": [
+    {
+      "disabled": [
+        true,
+        true
+      ],
+      "phase": [
+        "WARMUP",
+        "WARMUP"
+      ],
+      "stock": [
+        "40 available",
+        "100 available"
+      ]
+    },
+    {
+      "disabled": [
+        true,
+        true
+      ],
+      "phase": [
+        "LOOTED_OUT",
+        "LOOTED_OUT"
+      ],
+      "stock": [
+        "0 available",
+        "0 available"
+      ]
+    },
+    {
+      "disabled": [
+        true,
+        true
+      ],
+      "phase": [
+        "EXPIRED",
+        "EXPIRED"
+      ],
+      "stock": [
+        "40 available",
+        "100 available"
+      ]
+    },
+    {
+      "disabled": [
+        false,
+        false
+      ],
+      "phase": [
+        "AIRDROP_LIVE",
+        "AIRDROP_LIVE"
+      ],
+      "stock": [
+        "40 available",
+        "100 available"
+      ]
+    }
+  ],
+  "pending": {
+    "busy": "true",
+    "disabled": true,
+    "stock": "39 available"
+  },
+  "claimConfirmed": "Mock claim confirmed. No real ticket or currency issued.",
+  "sort": [
+    {
+      "header": "WWCD Count",
+      "sort": "descending"
+    },
+    {
+      "header": "Placement Points",
+      "sort": "descending"
+    },
+    {
+      "header": "Kill Points",
+      "sort": "descending"
+    },
+    {
+      "header": "Total Points",
+      "sort": "descending"
+    }
+  ],
+  "filteredSquads": [
+    "Cerberus Esports24459103",
+    "Roy Esports1365288"
+  ],
+  "updated": {
+    "filteredEvents": 2,
+    "sourceStatus": "Simulation paused · Update 1",
+    "totals": [
+      "113",
+      "103",
+      "88",
+      "78"
+    ]
+  },
+  "mobile": {
+    "claimTargets": [
+      {
+        "height": 45.33333587646485,
+        "width": 290.66668701171875
+      },
+      {
+        "height": 45.33333587646485,
+        "width": 290.66668701171875
+      }
+    ],
+    "client": 360,
+    "focus": "_r_6_-sort",
+    "labels": true,
+    "landmarks": {
+      "main": 1,
+      "nav": 1
+    },
+    "outline": "solid",
+    "scroll": 360,
+    "tableClient": 327,
+    "tableScroll": 590,
+    "viewport": 375
+  }
+}

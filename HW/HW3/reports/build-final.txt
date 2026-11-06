@@ -1,0 +1,13 @@
+
+> lab03-hw3-pvs-arena@0.0.0 build
+> tsc --noEmit && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 49 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.61 kB │ gzip:  0.37 kB
+dist/assets/index-BheJqQvf.css   12.46 kB │ gzip:  3.45 kB
+dist/assets/index-C3g9Qpby.js   247.37 kB │ gzip: 77.65 kB
+✓ built in 540ms

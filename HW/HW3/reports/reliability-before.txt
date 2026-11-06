@@ -1,0 +1,50 @@
+✖ inventory read outage before claim is handled without an unhandled rejection (0.9651ms)
+✖ inventory read outage after success cannot leave the Claim button stuck pending (4.436ms)
+✖ failed request plus failed reconciliation releases the lock and reports uncertain inventory (0.3384ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 103.0835
+
+✖ failing tests:
+
+test at tests\reliability.test.ts:8:1
+✖ inventory read outage before claim is handled without an unhandled rejection (0.9651ms)
+  Error: Inventory unavailable
+      at Object.read (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/tests/reliability.test.ts:11:73)
+      at Object.claim (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/src/services/claims/claimClient.ts:34:19)
+      at TestContext.<anonymous> (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/tests/reliability.test.ts:15:31)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+
+test at tests\reliability.test.ts:22:1
+✖ inventory read outage after success cannot leave the Claim button stuck pending (4.436ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at TestContext.<anonymous> (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/tests/reliability.test.ts:29:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\reliability.test.ts:36:1
+✖ failed request plus failed reconciliation releases the lock and reports uncertain inventory (0.3384ms)
+  Error: Inventory unavailable
+      at Object.read (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/tests/reliability.test.ts:39:73)
+      at Object.claim (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/src/services/claims/claimClient.ts:76:21)
+      at async TestContext.<anonymous> (file:///C:/Users/PC/Documents/WEB-LAB03/HW/HW3/tests/reliability.test.ts:42:18)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

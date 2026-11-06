@@ -1,0 +1,12 @@
+PASS: StrictMode mount has one timer and listener
+PASS: normal countdown
+PASS: delayed callback reaches zero without drift
+PASS: changed target immediately replaces old completed state
+PASS: changed server offset uses new clock
+PASS: background cancels pending timeout
+PASS: foreground resync is immediate
+PASS: foreground after opening clamps to zero
+PASS: unmount removes all work including stale callback
+PASS: remount has no duplicate subscriptions
+PASS: ticket uses countdown and warmup Claim lock
+PASS: opening automatically enables live Claim without expiry

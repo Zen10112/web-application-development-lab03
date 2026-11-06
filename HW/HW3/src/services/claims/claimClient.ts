@@ -22,16 +22,29 @@ export function createClaimClient(api: ClaimApi, ids: readonly string[], onChang
         displayedStock: Math.max(0, snapshot.remainingStock - (pending.has(id) ? 1 : 0)) });
     }
   };
+  const readLatest = (id: string): boolean => {
+    try { merge(id, api.read(id)); return true; }
+    catch { return false; }
+  };
 
   function refresh() {
     if (disposed) return;
-    for (const id of ids) merge(id, api.read(id));
+    for (const id of ids) {
+      if (!readLatest(id)) states.set(id, { ...getState(id), isError: true,
+        message: 'Inventory unavailable; could not refresh. Showing last confirmed stock.' });
+    }
     emit();
   }
 
   async function claim(id: string): Promise<boolean> {
     if (disposed || pending.has(id)) return false;
-    merge(id, api.read(id));
+    getState(id); // Reject unknown IDs before attempting an inventory refresh.
+    if (!readLatest(id)) {
+      states.set(id, { ...getState(id), isError: true,
+        message: 'Inventory unavailable; could not refresh. No request sent. Retry checks availability.' });
+      emit();
+      return false;
+    }
     const state = getState(id);
     if (state.inventory.phase !== 'AIRDROP_LIVE' || state.displayedStock <= 0) {
       states.set(id, { ...state, message: 'Drop unavailable. Inventory synchronized; no claim issued.', isError: true });
@@ -60,11 +73,12 @@ export function createClaimClient(api: ClaimApi, ids: readonly string[], onChang
       pending.delete(id);
       merge(id, response.inventory);
       // Reconcile with the latest mock authority even if response delivery was reordered.
-      merge(id, api.read(id));
+      const synchronized = readLatest(id);
       const current = getState(id);
       states.set(id, { ...current, displayedStock: current.inventory.remainingStock, isPending: false,
-        isError: response.status !== 200,
-        message: response.status === 200 ? 'Mock claim confirmed. No real ticket or currency issued.'
+        isError: response.status !== 200 || !synchronized,
+        message: !synchronized ? `${response.status === 200 ? 'Mock claim confirmed.' : 'Claim was not issued.'} Could not refresh latest inventory. Showing last confirmed stock.`
+          : response.status === 200 ? 'Mock claim confirmed. No real ticket or currency issued.'
           : response.status === 409 ? '409 Conflict: stock changed. Inventory synchronized; no claim issued.'
             : 'Drop is not live. Inventory synchronized; no claim issued.' });
       emit();
@@ -73,10 +87,11 @@ export function createClaimClient(api: ClaimApi, ids: readonly string[], onChang
       if (disposed || pending.get(id)?.claimId !== claimId) return false;
       pending.delete(id);
       // Never restore an old captured stock count. A failed delivery may follow a server commit.
-      merge(id, api.read(id));
+      const synchronized = readLatest(id);
       const current = getState(id);
       states.set(id, { ...current, displayedStock: current.inventory.remainingStock, isPending: false, isError: true,
-        message: timedOut ? 'Claim timed out. Inventory synchronized before retry.'
+        message: !synchronized ? 'Network or request error; could not refresh inventory. Showing last confirmed stock. Retry checks availability.'
+          : timedOut ? 'Claim timed out. Inventory synchronized before retry.'
           : error instanceof DOMException && error.name === 'AbortError' ? 'Claim cancelled. Inventory synchronized.'
             : 'Network or response error. Inventory synchronized before retry.' });
       emit();

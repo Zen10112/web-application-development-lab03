@@ -1,0 +1,12 @@
+✔ inventory read outage before claim is handled without an unhandled rejection (0.7702ms)
+✔ inventory read outage after success cannot leave the Claim button stuck pending (3.7578ms)
+✔ failed request plus failed reconciliation releases the lock and reports uncertain inventory (0.4625ms)
+✔ fifty concurrent requests allocate the final mock item exactly once (1.6085ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 108.5604

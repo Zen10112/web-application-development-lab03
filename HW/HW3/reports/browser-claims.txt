@@ -1,0 +1,9 @@
+PASS: StrictMode mount submits no requests
+PASS: double click has one request and immediate optimistic deduction
+PASS: pending item button is disabled and busy
+PASS: other item remains independently usable
+PASS: crate also deducts optimistically
+PASS: both results reconcile to shared authoritative stock
+PASS: success messages appear and locks release
+PASS: unmount aborts pending mock operation without allocating
+PASS: remount reads authority without submitting duplicate requests

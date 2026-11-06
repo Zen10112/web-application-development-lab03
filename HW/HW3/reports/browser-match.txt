@@ -1,0 +1,8 @@
+PASS: StrictMode mounts four squads and four mock events
+PASS: manual update changes both scores and feed
+PASS: start creates exactly one interval
+PASS: one scheduled tick creates exactly one new event
+PASS: pause clears the loop
+PASS: unmount removes the last subscription and blocks queued ticks
+PASS: remount preserves snapshot without restarting a loop
+PASS: fixtures remain unchanged
