@@ -1,8 +1,11 @@
-import { useId, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { DRUM_PADS } from '../data/drumPads.js';
 import { DrumPad } from './DrumPad.jsx';
 import { useDrumAudio } from '../hooks/useDrumAudio.js';
 import { useDrumKeyboard } from '../hooks/useDrumKeyboard.js';
+import { useHitFeedback } from '../hooks/useHitFeedback.js';
+import { VisualHitLog } from './VisualHitLog.jsx';
+import { AudioLevelMeter } from './AudioLevelMeter.jsx';
 
 const PAD_MAP = new Map(DRUM_PADS.map((pad) => [pad.physicalCode, pad]));
 
@@ -12,7 +15,14 @@ export function DrumKit() {
   const shortcutsId = useId();
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
   const [activePadIds, setActivePadIds] = useState(() => new Set());
-  const { triggerPad, audioError } = useDrumAudio();
+  const { triggerPad: playPad, readLevel, audioError } = useDrumAudio();
+  const { hits, flashingIds, announcement, recordHit } = useHitFeedback();
+  const triggerPad = useCallback((id) => {
+    const pad = DRUM_PADS.find((item) => item.id === id);
+    if (!pad) return;
+    recordHit(pad);
+    return playPad(id);
+  }, [recordHit, playPad]);
   const keyboardPadIds = useDrumKeyboard(PAD_MAP, triggerPad, shortcutsEnabled);
   const hasActivePad = activePadIds.size > 0 || keyboardPadIds.size > 0;
 
@@ -53,6 +63,7 @@ export function DrumKit() {
                 isActive={activePadIds.has(pad.id) || keyboardPadIds.has(pad.id)}
                 onPress={pressPad} onRelease={releasePad}
                 onTrigger={triggerPad} instructionsId={instructionsId}
+                isFlashing={flashingIds.has(pad.id)}
                 shortcutsEnabled={shortcutsEnabled} />
             </li>
           ))}
@@ -65,6 +76,10 @@ export function DrumKit() {
         </footer>
       </section>
       {audioError && <p role="alert" className="audio-error">{audioError}</p>}
+      <section className="visual-feedback" aria-label="Phản hồi trực quan">
+        <AudioLevelMeter readLevel={readLevel} />
+        <VisualHitLog hits={hits} announcement={announcement} />
+      </section>
       <p id={instructionsId} className="kit-instructions">
         <span className="instruction-label">CÁCH SỬ DỤNG</span>
         Dùng Tab hoặc Shift + Tab để chuyển giữa các pad; nhấn Enter hoặc Space để đánh pad đang chọn.

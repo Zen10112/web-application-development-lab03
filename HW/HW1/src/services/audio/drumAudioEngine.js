@@ -7,6 +7,8 @@ export function createDrumAudioEngine(pads = DRUM_PADS) {
   let context = null;
   let master = null;
   let compressor = null;
+  let analyser = null;
+  let levelSamples = null;
   let noiseBuffer = null;
   let resumePromise = null;
   let disposed = false;
@@ -22,15 +24,20 @@ export function createDrumAudioEngine(pads = DRUM_PADS) {
       master.gain.value = 0.35;
       compressor = context.createDynamicsCompressor();
       master.connect(compressor);
-      compressor.connect(context.destination);
+      analyser = context.createAnalyser();
+      analyser.fftSize = 1024;
+      levelSamples = new Float32Array(analyser.fftSize);
+      compressor.connect(analyser);
+      analyser.connect(context.destination);
       noiseBuffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
       const samples = noiseBuffer.getChannelData(0);
       for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
     } catch (error) {
       master?.disconnect();
       compressor?.disconnect();
+      analyser?.disconnect();
       void context.close().catch(() => {});
-      context = master = compressor = noiseBuffer = null;
+      context = master = compressor = analyser = noiseBuffer = levelSamples = null;
       throw error;
     }
   }
@@ -138,15 +145,26 @@ export function createDrumAudioEngine(pads = DRUM_PADS) {
     }
   }
 
+  // Linear digital RMS amplitude, not environmental loudness or dB SPL.
+  function readLevel() {
+    if (disposed || context?.state !== 'running' || !analyser) return 0;
+    analyser.getFloatTimeDomainData(levelSamples);
+    let sum = 0;
+    for (const sample of levelSamples) sum += sample * sample;
+    return Math.min(1, Math.sqrt(sum / levelSamples.length));
+  }
+
   async function dispose() {
     if (disposed) return;
     disposed = true;
     for (const cleanup of [...voices]) cleanup();
     master?.disconnect();
     compressor?.disconnect();
+    analyser?.disconnect();
     noiseBuffer = null;
+    levelSamples = null;
     if (context && context.state !== 'closed') await context.close();
   }
 
-  return { triggerPad, dispose };
+  return { triggerPad, readLevel, dispose };
 }

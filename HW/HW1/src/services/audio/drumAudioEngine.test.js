@@ -50,6 +50,11 @@ function installContext({ state = 'running', resumeError = false, startError = f
     }
     createGain() { return this.node(); }
     createDynamicsCompressor() { return this.node(); }
+    createAnalyser() {
+      const node = this.node();
+      node.getFloatTimeDomainData = (samples) => samples.fill(0.25);
+      return node;
+    }
     createBiquadFilter() { return this.node(); }
     createOscillator() { return this.node(true); }
     createBufferSource() { return Object.assign(this.node(true), { buffer: null }); }
@@ -86,7 +91,7 @@ test('all seven pads, rapid repeated hits and overlapping hits retain independen
   assert.equal(new Set(context.sources).size, 23);
   for (const source of context.sources) source.onended?.();
   assert.ok(context.sources.every((source) => !source.connected && source.onended === null));
-  assert.ok(context.nodes.slice(2).every((node) => !node.connected));
+  assert.ok(context.nodes.slice(3).every((node) => !node.connected));
   assert.ok(context.sources.filter((source) => 'buffer' in source).every((source) => source.buffer === null));
   await engine.dispose();
   assert.ok(context.nodes.every((node) => !node.connected));
@@ -147,7 +152,22 @@ test('source failure cleans partial voice resources', async () => {
   const contexts = installContext({ startError: true });
   const engine = createDrumAudioEngine();
   await assert.rejects(engine.triggerPad('snare'), /Source start failed/);
-  assert.ok(contexts[0].nodes.slice(2).every((node) => !node.connected));
+  assert.ok(contexts[0].nodes.slice(3).every((node) => !node.connected));
   assert.ok(contexts[0].sources.every((source) => source.onended === null));
   await engine.dispose();
+});
+
+test('RMS meter reads the shared analyser without creating a context at rest', async () => {
+  const contexts = installContext();
+  const engine = createDrumAudioEngine();
+  assert.equal(engine.readLevel(), 0);
+  assert.equal(contexts.length, 0);
+  await engine.triggerPad('kick');
+  assert.equal(engine.readLevel(), 0.25);
+  contexts[0].state = 'suspended';
+  assert.equal(engine.readLevel(), 0);
+  contexts[0].state = 'running';
+  await engine.dispose();
+  assert.equal(engine.readLevel(), 0);
+  assert.ok(contexts[0].nodes.every((node) => !node.connected));
 });

@@ -27,5 +27,7 @@ export function useDrumAudio() {
     }
   }, [audioError]);
 
-  return { triggerPad, audioError };
+  const readLevel = useCallback(() => engineRef.current?.readLevel() ?? 0, []);
+
+  return { triggerPad, readLevel, audioError };
 }
