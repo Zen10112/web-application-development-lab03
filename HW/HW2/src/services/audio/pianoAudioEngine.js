@@ -3,12 +3,15 @@ import { PIANO_KEYS } from '../../data/pianoKeys.js';
 const ATTACK = 0.008;
 const RELEASE = 0.08;
 const SUSTAIN = 0.16;
+export const MAX_VOICES = 8;
 
 /** React-independent synth. Each MIDI note owns a pending or sounding voice. */
 export function createPianoAudioEngine() {
   const keys = new Map(PIANO_KEYS.map((key) => [key.midi, key]));
   const active = new Map();
-  const sounding = new Set();
+  // Map insertion order is the FIFO queue, including pending/releasing voices.
+  const voices = new Map();
+  let nextVoiceId = 0;
   let context = null;
   let master = null;
   let compressor = null;
@@ -36,6 +39,8 @@ export function createPianoAudioEngine() {
   }
 
   function cleanup(voice) {
+    if (voice.state === 'ended') return;
+    voice.state = 'ended';
     voice.cancelled = true;
     if (voice.oscillator) {
       voice.oscillator.onended = null;
@@ -43,7 +48,7 @@ export function createPianoAudioEngine() {
       voice.oscillator.disconnect();
     }
     voice.gain?.disconnect();
-    sounding.delete(voice);
+    voices.delete(voice.id);
     if (active.get(voice.midi) === voice) active.delete(voice.midi);
   }
 
@@ -53,7 +58,11 @@ export function createPianoAudioEngine() {
     if (!key) throw new RangeError('MIDI must be an integer from 21 to 108.');
     if (active.has(midi)) return;
     initialize();
-    const voice = { midi, cancelled: false, oscillator: null, gain: null, startedAt: 0 };
+    if (voices.size >= MAX_VOICES) cleanup(voices.values().next().value);
+    const order = ++nextVoiceId;
+    const voice = { id: `voice-${order}`, midi, createdOrder: order, createdAt: context.currentTime,
+      state: 'pending', cancelled: false, oscillator: null, gain: null, startedAt: 0 };
+    voices.set(voice.id, voice);
     active.set(midi, voice);
     try {
       // Resume inside the original user gesture. Concurrent presses share the promise.
@@ -65,7 +74,7 @@ export function createPianoAudioEngine() {
       // A keyup/dispose may have happened while resume was pending.
       if (disposed || voice.cancelled || active.get(midi) !== voice) return;
       if (context.state !== 'running') throw new Error('Could not enable audio. Try pressing a key again.');
-      sounding.add(voice);
+      voice.state = 'held';
       voice.oscillator = context.createOscillator();
       voice.gain = context.createGain();
       voice.startedAt = context.currentTime;
@@ -89,7 +98,8 @@ export function createPianoAudioEngine() {
     if (!voice) return;
     active.delete(midi);
     voice.cancelled = true;
-    if (!voice.oscillator) return;
+    if (!voice.oscillator) { cleanup(voice); return; }
+    voice.state = 'releasing';
     try {
       const now = context.currentTime;
       const gain = voice.gain.gain;
@@ -119,11 +129,17 @@ export function createPianoAudioEngine() {
     disposed = true;
     for (const voice of active.values()) voice.cancelled = true;
     active.clear();
-    for (const voice of [...sounding]) cleanup(voice);
+    for (const voice of [...voices.values()]) cleanup(voice);
     master?.disconnect();
     compressor?.disconnect();
     if (context && context.state !== 'closed') await context.close();
   }
 
-  return { noteOn, noteOff, stopAll, dispose };
+  // Detached metadata for tests/diagnostics; audio nodes stay private to the engine.
+  function getVoiceSnapshot() {
+    return Object.freeze([...voices.values()].map(({ id, midi, createdOrder, createdAt, state }) =>
+      Object.freeze({ id, midi, createdOrder, createdAt, state })));
+  }
+
+  return { noteOn, noteOff, stopAll, dispose, getVoiceCount: () => voices.size, getVoiceSnapshot };
 }

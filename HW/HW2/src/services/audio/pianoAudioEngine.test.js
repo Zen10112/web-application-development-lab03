@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
-import { createPianoAudioEngine } from './pianoAudioEngine.js';
+import { createPianoAudioEngine, MAX_VOICES } from './pianoAudioEngine.js';
 
 const originalContext = globalThis.AudioContext;
 const originalWebkit = globalThis.webkitAudioContext;
@@ -20,6 +20,7 @@ function installContext({ suspended = false, deferred = false, resumeError = fal
       this.oscillators = [];
       this.resumeCalls = 0;
       this.closeCalls = 0;
+      this.maxConnectedOscillators = 0;
       instances.push(this);
     }
     parameter() {
@@ -33,7 +34,12 @@ function installContext({ suspended = false, deferred = false, resumeError = fal
       };
     }
     node() {
-      const node = { connected: false, connect() { this.connected = true; }, disconnect() { this.connected = false; } };
+      const context = this;
+      const node = { connected: false, connect() {
+        this.connected = true;
+        context.maxConnectedOscillators = Math.max(context.maxConnectedOscillators,
+          context.oscillators.filter((osc) => osc.connected).length);
+      }, disconnect() { this.connected = false; } };
       this.nodes.push(node);
       return node;
     }
@@ -185,4 +191,95 @@ test('unsupported browsers and invalid MIDI receive explicit errors', async () =
   await assert.rejects(engine.noteOn(69), /does not support/);
   engine.noteOff(69);
   await engine.dispose();
+});
+
+test('one note and a three-note chord own distinct identified voices outside React', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  await engine.noteOn(60);
+  assert.equal(engine.getVoiceCount(), 1);
+  await engine.noteOn(64); await engine.noteOn(67);
+  const snapshot = engine.getVoiceSnapshot();
+  assert.deepEqual(snapshot.map((voice) => voice.midi), [60, 64, 67]);
+  assert.equal(new Set(snapshot.map((voice) => voice.id)).size, 3);
+  assert.deepEqual(snapshot.map((voice) => voice.createdOrder), [1, 2, 3]);
+  assert.ok(snapshot.every((voice) => voice.state === 'held' && voice.createdAt === 5));
+  assert.equal(instances[0].oscillators.filter((osc) => osc.connected).length, 3);
+  assert.ok(Object.isFrozen(snapshot) && snapshot.every(Object.isFrozen));
+  await engine.dispose();
+  assert.equal(engine.getVoiceCount(), 0);
+});
+
+test('eight simultaneous notes are supported; the ninth replaces only the oldest voice', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  assert.equal(MAX_VOICES, 8);
+  assert.equal(engine.getVoiceCount(), 8);
+  const oldest = instances[0].oscillators[0];
+  await engine.noteOn(72);
+  assert.equal(engine.getVoiceCount(), 8);
+  assert.deepEqual(engine.getVoiceSnapshot().map((voice) => voice.midi), [61, 62, 63, 64, 65, 66, 67, 72]);
+  assert.equal(oldest.connected, false);
+  assert.equal(oldest.stops.length, 1);
+  assert.equal(instances[0].oscillators.filter((osc) => osc.connected).length, 8);
+  assert.equal(instances[0].maxConnectedOscillators, 8, 'no transient ninth oscillator connection');
+  engine.noteOff(60); // The stolen note's later keyup must not stop another voice.
+  assert.equal(engine.getVoiceCount(), 8);
+  await engine.dispose();
+});
+
+test('release tails occupy slots and re-presses do not lose or stop the new voice', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  engine.noteOff(60); engine.noteOff(64);
+  assert.equal(engine.getVoiceCount(), 8, 'release tails still count');
+  assert.equal(engine.getVoiceSnapshot().filter((voice) => voice.state === 'releasing').length, 2);
+  const lateEnded = instances[0].oscillators[0].onended;
+  await engine.noteOn(60);
+  lateEnded();
+  assert.equal(engine.getVoiceCount(), 8);
+  assert.equal(engine.getVoiceSnapshot().at(-1).midi, 60);
+  engine.noteOff(60);
+  assert.equal(instances[0].oscillators.at(-1).stops.length, 1);
+  instances[0].oscillators[4].onended();
+  assert.equal(engine.getVoiceCount(), 7);
+  assert.equal(instances[0].oscillators.filter((osc) => osc.connected).length, 7);
+  await engine.dispose();
+});
+
+test('pending resume reservations are bounded and stolen requests never start later', async () => {
+  const instances = installContext({ suspended: true, deferred: true });
+  const engine = createPianoAudioEngine();
+  const pending = [];
+  for (let midi = 60; midi < 72; midi++) {
+    pending.push(engine.noteOn(midi));
+    assert.ok(engine.getVoiceCount() <= 8);
+  }
+  assert.deepEqual(engine.getVoiceSnapshot().map((voice) => voice.midi), [64, 65, 66, 67, 68, 69, 70, 71]);
+  instances[0].finishResume();
+  await Promise.all(pending);
+  assert.equal(instances[0].oscillators.length, 8);
+  assert.equal(engine.getVoiceCount(), 8);
+  assert.equal(instances[0].resumeCalls, 1);
+  await engine.dispose();
+});
+
+test('100 rapid same-note re-presses never retain more than eight voice node pairs', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  for (let i = 0; i < 100; i++) {
+    await engine.noteOn(69);
+    engine.noteOff(69);
+    assert.ok(engine.getVoiceCount() <= 8);
+    assert.ok(instances[0].oscillators.filter((osc) => osc.connected).length <= 8);
+    assert.ok(instances[0].nodes.filter((node) => node.connected).length <= 18);
+  }
+  for (const osc of instances[0].oscillators) osc.onended?.();
+  assert.equal(instances[0].maxConnectedOscillators, 8);
+  assert.equal(engine.getVoiceCount(), 0);
+  assert.equal(instances[0].nodes.filter((node) => node.connected).length, 2);
+  await engine.dispose();
+  assert.ok(instances[0].nodes.every((node) => !node.connected));
 });
