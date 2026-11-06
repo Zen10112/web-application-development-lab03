@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test src/data/pianoKeys.test.js",
+    "test": "node --test src/data/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
