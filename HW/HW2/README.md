@@ -29,11 +29,11 @@ Limitations: this is a simple sustained oscillator tone, not a sampled acoustic 
 
 ## Eight-voice polyphony
 
-The engine owns a FIFO Map keyed by unique voice ID. Every voice stores its MIDI note, creation order/time, oscillator, gain and lifecycle state. A separate MIDI Map identifies only the currently held or pending voice for noteOff. The pool includes pending resume reservations and release tails; its size never exceeds `MAX_VOICES = 8`.
+The engine owns a FIFO Map keyed by unique voice ID. Every voice stores its MIDI note, creation order/time, oscillator, gain and lifecycle state. A separate MIDI Map identifies only the currently held or pending voice for noteOff. Eight physical slots bound pending reservations, held voices and release tails; a retired oscillator can fade in a slot while its replacement waits without an oscillator.
 
-When the pool is full, the oldest voice is immediately stopped and disconnected before a replacement allocates audio nodes. This strict limit also applies to release tails. Normal noteOff retains its 80ms release; a capacity-driven FIFO eviction cuts the old voice immediately and may be more abrupt. Repeating noteOn for an already held MIDI is ignored. Re-pressing after noteOff creates a new ID, and an old ended callback cannot remove the new voice.
+When the pool is full, the oldest voice fades its current gain to zero over 40ms and stops 5ms later. Its replacement waits for ended/disconnect before allocating nodes, preserving the strict eight-oscillator limit. Cancelling or stealing a waiting replacement transfers the same slot barrier, so it cannot accidentally free capacity while the predecessor still sounds. Normal noteOff retains its 80ms release. Repeating noteOn for an already held MIDI is ignored. Re-pressing after noteOff creates a new ID, and an old ended callback cannot remove the new voice.
 
-`getVoiceCount()` reports all reserved/held/releasing slots. `getVoiceSnapshot()` returns detached, frozen metadata in FIFO order (ID, MIDI, creation order/time and state); it does not expose mutable audio nodes. Voice bookkeeping stays outside React state, and no piano UI or note-generation changes are required.
+`getVoiceCount()` reports occupied physical slots, including a retiring oscillator whose pending replacement was cancelled. `getVoiceSnapshot()` returns detached, frozen metadata for admitted logical notes in FIFO order (ID, MIDI, creation order/time and state); retired predecessors are managed separately until cleanup. It does not expose mutable audio nodes. Voice bookkeeping stays outside React state, and no piano UI or note-generation changes are required.
 
 ## FIFO voice stealing
 
@@ -41,7 +41,7 @@ Admission removes the first Map entry before reserving a replacement, with no aw
 
 `noteOn(midi)` resolves to the voice ID when accepted (or undefined when cancelled before starting). `noteOff(midi)` remains compatible and releases the current voice for that MIDI. For independent owners or a future sequencer, use the returned ID with `noteOff(midi, voiceId)`; an outdated ID cannot release a newer voice with the same MIDI. MIDI alone cannot identify an old owner after the note has been retriggered.
 
-Natural ended callbacks disconnect nodes without issuing another stop. Repeated cleanup is idempotent, clears node references and cannot remove a newer voice. Stealing or disposal can replace an already scheduled release stop with an immediate stop; that deliberate rescheduling enforces the strict eight-voice limit. Normal noteOff still fades over 80ms, while forced stealing can sound more abrupt.
+Natural ended callbacks disconnect nodes without issuing another stop. Repeated cleanup is idempotent, clears node references and cannot remove a newer voice. Stealing reschedules an existing release with a short fade; the fallback preserves the current release amplitude instead of jumping back to sustain. Explicit immediate Stop and disposal still silence/disconnect all admitted and retiring voices and cancel their waiters, as required by sequencer cancellation.
 
 FIFO verification: 30 Node tests passed (9 data/layout, 21 engine), with a successful production build. Added cases check the ninth and tenth replacements, completed release slots, stale same-MIDI identity, repeated noteOff/ended callbacks, 160 interleaved fast operations and disposal with held/releasing/pending voices. Existing 100 repeated-hit and suspended-resume tests also pass.
 
@@ -92,3 +92,13 @@ Development history and evidence: [TASK_DECOMPOSITION.md](TASK_DECOMPOSITION.md)
 | E/F — Task decomposition and AI audit | Completed | Real Git history and baseline evidence; audit explicitly counts two interaction bugs and a deferred performance gap |
 
 No executed final assertion remains FAIL. Full WCAG, native assistive technology and all device-specific behavior remain NOT TESTED rather than being inferred from other passing results.
+
+## FIFO release-envelope correction
+
+The review found that the original FIFO path stopped/disconnected the oldest oscillator without a gain ramp. A new regression reproduced `FIFO steal bypassed the release envelope` before the fix. The engine now uses the 40ms slot handoff described above; no UI, key generation or sequencer logic was changed.
+
+Verification: all 48 Node tests and the production build pass, including six new engine cases for scheduled fade-before-stop, ended-gated allocation, stale noteOff, cancelled waiters, repeated rapid steals, release-tail fallback amplitude and immediate Stop/dispose during a fade. Mock ended events are explicitly controlled in the new concurrency tests; other engine tests advance short steal fades through queued mock completion.
+
+Real Web Audio verification at `/tests/audio.html`: FIFO release/chord/ninth/tenth/stale-keyup/unmount PASS, peak oscillators 8, retained nodes 0, closed contexts 1. The recording/replay/Stop/unmount regression also passed with retained nodes 0 and closed contexts 1. Both browser warning/error logs were empty. The fixture waits for ended cleanup instead of assuming a fixed 40ms delay is sufficient.
+
+A stolen note's replacement has approximately 45ms admission latency plus ended-event delivery, rather than briefly creating a ninth oscillator. Absolute-target replay can catch up after that delay, but this is not a sample-accurate scheduler. The change verifies envelope scheduling/resource ownership; subjective absence of audible pops on every device is not claimed.

@@ -9,7 +9,7 @@ afterEach(() => {
   globalThis.webkitAudioContext = originalWebkit;
 });
 
-function installContext({ suspended = false, deferred = false, resumeError = false, startError = false, fallback = false } = {}) {
+function installContext({ suspended = false, deferred = false, resumeError = false, startError = false, fallback = false, autoEndSteals = true } = {}) {
   const instances = [];
   globalThis.AudioContext = class {
     constructor() {
@@ -46,10 +46,20 @@ function installContext({ suspended = false, deferred = false, resumeError = fal
     createGain() { return Object.assign(this.node(), { gain: this.parameter() }); }
     createDynamicsCompressor() { return this.node(); }
     createOscillator() {
+      const context = this;
       const node = Object.assign(this.node(), {
         frequency: this.parameter(), starts: [], stops: [], onended: null,
         start(at) { if (startError) throw new Error('Start failed'); this.starts.push(at); },
-        stop(at) { this.stops.push(at); },
+        stop(at) {
+          this.stops.push(at);
+          // Advance only short steal fades; normal 80ms releases remain manual.
+          if (autoEndSteals && at !== undefined && at - context.currentTime < 0.06) {
+            queueMicrotask(() => {
+              context.currentTime = Math.max(context.currentTime, at);
+              this.onended?.();
+            });
+          }
+        },
       });
       this.oscillators.push(node);
       return node;
@@ -76,6 +86,97 @@ test('lazy shared context and correct A0, A4 and C8 oscillator frequencies', asy
     assert.ok(Math.abs(frequencies[index] - expected) < 1e-9);
   }
   await engine.dispose();
+});
+
+test('FIFO stealing schedules a gain fade before stopping the oldest oscillator', async () => {
+  const instances = installContext(); const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  const ctx = instances[0], oldest = ctx.oscillators[0], gain = ctx.nodes[3].gain;
+  ctx.currentTime = 6;
+  await engine.noteOn(72);
+  const release = gain.events.find((event) => event[0] === 'ramp' && event[1] === 0);
+  assert.ok(release, 'FIFO steal bypassed the release envelope');
+  assert.ok(Math.abs(release[2] - 6.04) < 1e-9);
+  assert.ok(oldest.stops[0] > release[2]);
+  assert.equal(ctx.maxConnectedOscillators, 8);
+  await engine.dispose();
+});
+
+test('replacement waits for ended cleanup and stale noteOff cannot cancel it', async () => {
+  const instances = installContext({ autoEndSteals: false }); const engine = createPianoAudioEngine();
+  const oldId = await engine.noteOn(60);
+  for (let midi = 61; midi < 68; midi++) await engine.noteOn(midi);
+  const ctx = instances[0]; ctx.currentTime = 6;
+  const replacement = engine.noteOn(72);
+  assert.equal(ctx.oscillators.length, 8);
+  assert.equal(ctx.oscillators[0].connected, true, 'old voice stays connected for the fade');
+  assert.equal(engine.getVoiceSnapshot().at(-1).state, 'pending');
+  engine.noteOff(60, oldId);
+  ctx.currentTime = 6.045; ctx.oscillators[0].onended();
+  assert.ok(await replacement);
+  assert.equal(ctx.maxConnectedOscillators, 8);
+  assert.equal(engine.getVoiceSnapshot().at(-1).state, 'held');
+  await engine.dispose();
+});
+
+test('cancelling a queued replacement does not free its still-fading physical slot early', async () => {
+  const instances = installContext({ autoEndSteals: false }); const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  const ctx = instances[0];
+  const cancelled = engine.noteOn(72); engine.noteOff(72);
+  assert.equal(engine.getVoiceCount(), 8, 'the retiring slot still occupies capacity');
+  const latest = engine.noteOn(74);
+  assert.equal(ctx.oscillators.length, 8);
+  ctx.currentTime = 5.045; ctx.oscillators[0].onended();
+  assert.equal(await cancelled, undefined);
+  assert.ok(await latest);
+  assert.equal(ctx.oscillators.length, 9);
+  assert.equal(ctx.maxConnectedOscillators, 8);
+  await engine.dispose();
+});
+
+test('many rapid steals preserve FIFO reservations and inherit the original slot barriers', async () => {
+  const instances = installContext({ autoEndSteals: false }); const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  const ctx = instances[0], pending = [];
+  for (let midi = 72; midi < 90; midi++) pending.push(engine.noteOn(midi));
+  assert.deepEqual(engine.getVoiceSnapshot().map((voice) => voice.midi), [82, 83, 84, 85, 86, 87, 88, 89]);
+  assert.equal(ctx.oscillators.length, 8, 'waiting reservations must not allocate oscillators');
+  assert.ok(ctx.oscillators.every((osc) => osc.stops.length === 1));
+  ctx.currentTime = 5.045;
+  for (const osc of [...ctx.oscillators]) osc.onended();
+  await Promise.all(pending);
+  assert.equal(ctx.oscillators.length, 16);
+  assert.equal(ctx.maxConnectedOscillators, 8);
+  assert.equal(engine.getVoiceCount(), 8);
+  await engine.dispose();
+});
+
+test('stealing an existing release tail does not jump gain back up in the fallback path', async () => {
+  const instances = installContext({ fallback: true }); const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  const ctx = instances[0]; ctx.currentTime = 6; engine.noteOff(60);
+  ctx.currentTime = 6.04;
+  await engine.noteOn(72);
+  const events = ctx.nodes[3].gain.events;
+  const held = events.filter((event) => event[0] === 'set').at(-1);
+  assert.ok(Math.abs(held[1] - 0.08) < 1e-9, 'fallback must preserve the halfway-released amplitude');
+  assert.equal(ctx.maxConnectedOscillators, 8);
+  await engine.dispose();
+});
+
+test('immediate Stop and dispose cancel fade waiters without late oscillator starts', async () => {
+  for (const mode of ['stop', 'dispose']) {
+    const instances = installContext({ autoEndSteals: false }); const engine = createPianoAudioEngine();
+    for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+    const ctx = instances[0], pending = engine.noteOn(72);
+    if (mode === 'stop') engine.stopAll(true); else await engine.dispose();
+    assert.equal(await pending, undefined);
+    assert.equal(ctx.oscillators.length, 8);
+    assert.equal(engine.getVoiceCount(), 0);
+    assert.ok(ctx.nodes.slice(2).every((node) => !node.connected));
+    await engine.dispose();
+  }
 });
 
 test('a held note sustains until release, then stops and disconnects on ended', async () => {

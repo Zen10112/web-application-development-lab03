@@ -10,6 +10,7 @@ const nodes = new Set();
 const oscillators = [];
 let root = null;
 let peakOscillators = 0;
+const gainRamps = [];
 
 function track(node) {
   nodes.add(node);
@@ -27,7 +28,12 @@ function track(node) {
 if (NativeContext) {
   window.AudioContext = class extends NativeContext {
     constructor(...args) { super(...args); contexts.push(this); }
-    createGain() { return track(super.createGain()); }
+    createGain() {
+      const gain = track(super.createGain());
+      const ramp = gain.gain.linearRampToValueAtTime.bind(gain.gain);
+      gain.gain.linearRampToValueAtTime = (value, time) => { gainRamps.push({ value, time }); return ramp(value, time); };
+      return gain;
+    }
     createDynamicsCompressor() { return track(super.createDynamicsCompressor()); }
     createOscillator() {
       const oscillator = track(super.createOscillator());
@@ -62,6 +68,10 @@ document.querySelector('#fifo-test').addEventListener('click', async () => {
   buttons.forEach((button) => { button.disabled = true; });
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const until = async (condition) => {
+    for (let i = 0; i < 40 && !condition(); i++) await wait(25);
+    assert(condition(), 'Timed out waiting for fade/ended cleanup and replacement');
+  };
   let failure;
   try {
     assert(NativeContext, 'Web Audio is unavailable');
@@ -74,9 +84,14 @@ document.querySelector('#fifo-test').addEventListener('click', async () => {
     for (let midi = 60; midi < 68; midi++) dispatch(midi, 'keydown');
     for (let i = 0; i < 20 && oscillators.length < 8; i++) await wait(50);
     assert(oscillators.length === 8, 'Eight-note chord did not start');
-    dispatch(72, 'keydown'); await wait(40);
+    const previousRamps = gainRamps.length;
+    const stealAt = contexts[0].currentTime;
+    dispatch(72, 'keydown');
+    assert(gainRamps.slice(previousRamps).some((ramp) => ramp.value === 0 && ramp.time >= stealAt + 0.035), 'FIFO steal did not schedule a release envelope');
+    await until(() => oscillators.length === 9 && !nodes.has(oscillators[0]));
     assert(oscillators.length === 9 && !nodes.has(oscillators[0]), 'Ninth note did not steal the first');
-    dispatch(74, 'keydown'); await wait(40);
+    dispatch(74, 'keydown');
+    await until(() => oscillators.length === 10 && !nodes.has(oscillators[1]));
     assert(oscillators.length === 10 && !nodes.has(oscillators[1]), 'Tenth note did not steal the second');
     dispatch(60, 'keyup'); dispatch(61, 'keyup'); await wait(40);
     assert(oscillators.filter((osc) => nodes.has(osc)).length === 8, 'Stolen-note keyup affected a replacement');
@@ -86,7 +101,7 @@ document.querySelector('#fifo-test').addEventListener('click', async () => {
     root?.unmount(); root = null;
     await wait(100);
     if (nodes.size !== 0 || contexts.some((ctx) => ctx.state !== 'closed')) failure ??= 'Unmount leaked audio resources';
-    status.textContent = `${failure ? `FAIL: ${failure}` : 'PASS: FIFO chord, ninth/tenth note, stale keyup and React unmount'}; peak oscillators: ${peakOscillators}; retained nodes: ${nodes.size}; closed contexts: ${contexts.filter((ctx) => ctx.state === 'closed').length}`;
+    status.textContent = `${failure ? `FAIL: ${failure}` : 'PASS: FIFO release envelope, chord, ninth/tenth note, stale keyup and React unmount'}; peak oscillators: ${peakOscillators}; retained nodes: ${nodes.size}; closed contexts: ${contexts.filter((ctx) => ctx.state === 'closed').length}`;
     buttons.forEach((button) => { button.disabled = false; });
   }
 });

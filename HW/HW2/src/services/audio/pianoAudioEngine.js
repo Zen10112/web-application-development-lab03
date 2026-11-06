@@ -3,6 +3,7 @@ import { PIANO_KEYS } from '../../data/pianoKeys.js';
 const ATTACK = 0.008;
 const RELEASE = 0.08;
 const SUSTAIN = 0.16;
+const STEAL_RELEASE = 0.04;
 export const MAX_VOICES = 8;
 
 /** React-independent synth. Each MIDI note owns a pending or sounding voice. */
@@ -11,6 +12,9 @@ export function createPianoAudioEngine() {
   const active = new Map();
   // Map insertion order is the FIFO queue, including pending/releasing voices.
   const voices = new Map();
+  // A slot can fade an old oscillator while its replacement waits, never both sounding.
+  const slots = Array.from({ length: MAX_VOICES }, () => ({ voice: null, ready: null }));
+  const retiring = new Set();
   let nextVoiceId = 0;
   let context = null;
   let master = null;
@@ -54,14 +58,53 @@ export function createPianoAudioEngine() {
     voice.gain = null;
     voices.delete(voice.id);
     if (active.get(voice.midi) === voice) active.delete(voice.midi);
+    if (voice.slot.voice === voice) voice.slot.voice = null;
+    if (voice.slot.ready === voice.finished) voice.slot.ready = null;
+    retiring.delete(voice);
+    voice.resolveEnded();
+  }
+
+  function fade(voice, duration, stopPadding) {
+    const now = context.currentTime;
+    const gain = voice.gain.gain;
+    const amplitude = voice.releaseAt === null
+      ? SUSTAIN * Math.min(1, Math.max(0, (now - voice.startedAt) / ATTACK))
+      : voice.releaseFrom * Math.max(0, 1 - (now - voice.releaseAt) / voice.releaseDuration);
+    if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(now);
+    else { gain.cancelScheduledValues(now); gain.setValueAtTime(amplitude, now); }
+    gain.linearRampToValueAtTime(0, now + duration);
+    voice.releaseAt = now;
+    voice.releaseFrom = amplitude;
+    voice.releaseDuration = duration;
+    voice.oscillator.stop(now + duration + stopPadding);
+  }
+
+  function retire(voice) {
+    if (!voice.oscillator) { cleanup(voice); return; }
+    voices.delete(voice.id);
+    if (active.get(voice.midi) === voice) active.delete(voice.midi);
+    voice.slot.voice = null;
+    voice.cancelled = true;
+    voice.state = 'stealing';
+    retiring.add(voice);
+    const finished = voice.finished;
+    voice.slot.ready = finished;
+    try { fade(voice, STEAL_RELEASE, 0.005); }
+    catch (error) { cleanup(voice); throw error; }
   }
 
   function reserveVoice(midi) {
-    // No await between eviction and insertion: admission is atomic in this JS turn.
-    if (voices.size >= MAX_VOICES) cleanup(voices.values().next().value);
+    // Logical FIFO admission is atomic; physical slot reuse waits for ended cleanup.
+    const slot = voices.size >= MAX_VOICES ? voices.values().next().value.slot
+      : slots.find((item) => item.voice === null && item.ready === null) ?? slots.find((item) => item.voice === null);
+    if (slot.voice) retire(slot.voice);
     const order = ++nextVoiceId;
+    let resolveEnded;
+    const finished = new Promise((resolve) => { resolveEnded = resolve; });
     const voice = { id: `voice-${order}`, midi, createdOrder: order, createdAt: context.currentTime,
-      state: 'pending', cancelled: false, oscillator: null, gain: null, startedAt: 0 };
+      state: 'pending', cancelled: false, oscillator: null, gain: null, startedAt: 0,
+      slot, finished, resolveEnded, releaseAt: null, releaseFrom: 0, releaseDuration: 0 };
+    slot.voice = voice;
     voices.set(voice.id, voice);
     active.set(midi, voice);
     return voice;
@@ -81,6 +124,7 @@ export function createPianoAudioEngine() {
         if (!resumePromise) resumePromise = context.resume().finally(() => { resumePromise = null; });
         await resumePromise;
       }
+      if (voice.slot.ready) await voice.slot.ready;
       // A keyup/dispose may have happened while resume was pending.
       if (disposed || voice.cancelled || active.get(midi) !== voice) return;
       if (context.state !== 'running') throw new Error('Could not enable audio. Try pressing a key again.');
@@ -113,15 +157,7 @@ export function createPianoAudioEngine() {
     if (!voice.oscillator) { cleanup(voice); return; }
     voice.state = 'releasing';
     try {
-      const now = context.currentTime;
-      const gain = voice.gain.gain;
-      if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(now);
-      else {
-        gain.cancelScheduledValues(now);
-        gain.setValueAtTime(SUSTAIN * Math.min(1, Math.max(0, (now - voice.startedAt) / ATTACK)), now);
-      }
-      gain.linearRampToValueAtTime(0, now + RELEASE);
-      voice.oscillator.stop(now + RELEASE + 0.01);
+      fade(voice, RELEASE, 0.01);
     } catch (error) {
       cleanup(voice);
       throw error;
@@ -130,7 +166,7 @@ export function createPianoAudioEngine() {
 
   function stopAll(immediate = false) {
     if (immediate) {
-      for (const voice of [...voices.values()]) cleanup(voice);
+      for (const voice of [...voices.values(), ...retiring]) cleanup(voice);
       return;
     }
     let firstError;
@@ -145,7 +181,7 @@ export function createPianoAudioEngine() {
     disposed = true;
     for (const voice of active.values()) voice.cancelled = true;
     active.clear();
-    for (const voice of [...voices.values()]) cleanup(voice);
+    for (const voice of [...voices.values(), ...retiring]) cleanup(voice);
     master?.disconnect();
     compressor?.disconnect();
     if (context && context.state !== 'closed') await context.close();
@@ -157,5 +193,6 @@ export function createPianoAudioEngine() {
       Object.freeze({ id, midi, createdOrder, createdAt, state })));
   }
 
-  return { noteOn, noteOff, stopAll, dispose, getVoiceCount: () => voices.size, getVoiceSnapshot };
+  return { noteOn, noteOff, stopAll, dispose,
+    getVoiceCount: () => slots.filter((slot) => slot.voice !== null || slot.ready !== null).length, getVoiceSnapshot };
 }
