@@ -3,7 +3,7 @@ import test from 'node:test';
 import { selectKillFeed, selectStandings, totalPoints } from '../src/domain/matchSelectors.ts';
 import { MOCK_SQUAD_STANDINGS } from '../src/data/mockArenaData.ts';
 import { MOCK_KILL_FEED } from '../src/data/mockMatchData.ts';
-import { createMockMatchSource, MAX_KILL_FEED_EVENTS } from '../src/services/mockMatchSource.ts';
+import { createMockMatchSource } from '../src/services/mockMatchSource.ts';
 
 const standings = Object.freeze([
   Object.freeze({ squadId: 'a', squadName: 'Alpha', wwcdCount: 1, placementPts: 20, killPts: 10 }),
@@ -92,11 +92,11 @@ test('new mock update creates immutable snapshots and a consistent kill-point in
   stop();
 });
 
-test('repeated updates bound history at 50 and preserve unique event IDs', () => {
-  const { source } = fakeSource();
+test('repeated updates respect the configured retention cap and preserve unique event IDs', () => {
+  const source = createMockMatchSource(undefined, { historyLimit: 50 });
   for (let i = 0; i < 200; i++) source.step();
   const { events } = source.getSnapshot();
-  assert.equal(events.length, MAX_KILL_FEED_EVENTS);
+  assert.equal(events.length, 50);
   assert.equal(new Set(events.map((event) => event.eventId)).size, events.length);
   assert.ok(events.every((event, index) => index === 0 || events[index - 1].timestamp > event.timestamp));
 });

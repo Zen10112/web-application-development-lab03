@@ -79,10 +79,10 @@ This is a simulated API returning `status: 200/403/409`, not an HTTP server. Net
 ## Simulated live leaderboard and kill-feed
 
 - `src/components/PubgLeaderboard.tsx`: semantic table for the four domain squads, derived Total Points (`placementPts + killPts`), all four numeric sort criteria in either direction, and trimmed case-insensitive name search. The selected header exposes aria-sort; labels use useId and results are announced via status text. A focusable horizontal scroll region contains the table on narrow screens.
-- `src/components/KillFeed.tsx`: newest-first elimination events, killer-squad filter, optional-weapon fallback and UTC+7 timestamps. All player aliases are fictional. The event list has a bounded, keyboard-focusable vertical scroll region.
-- `src/domain/matchSelectors.ts`: pure sort/filter/total functions; copied arrays are sorted without mutating domain fixtures. Tied scores use alphabetical squad names and stable IDs. Four squads and at most 50 events are inexpensive to derive directly; no useMemo cache or useEffect-derived-state synchronization is added.
+- `src/components/KillFeed.tsx`: newest-first elimination events, killer-squad filter, optional-weapon fallback and UTC+7 timestamps. All player aliases are fictional. The event list uses the bounded virtual viewport described below.
+- `src/domain/matchSelectors.ts`: pure sort/filter/total functions; copied arrays are sorted without mutating domain fixtures. Tied scores use alphabetical squad names and stable IDs. The four-row leaderboard derives directly; the larger kill-feed now memoizes selection by events/filter. No useEffect-derived-state synchronization is added.
 - `src/domain/pubg-vn-arena-contract.ts`, `src/data/mockMatchData.ts`: readonly kill event contract (`eventId`, `timestamp`, `killer`, `victim`, killer `squadId`, optional `weapon`) and immutable mock fixtures.
-- `src/services/mockMatchSource.ts`: cached immutable snapshots, atomic mock score/event updates, monotonic event IDs and a 50-entry history limit. Every new mock elimination adds one Kill Point to its killer's squad. Event timestamps advance on a fixed fictional match clock; they do not claim to be current real-world events.
+- `src/services/mockMatchSource.ts`: cached immutable snapshots, atomic mock score/event updates and monotonic event IDs. History defaults to 1,000 events, with an explicit configurable hard ceiling of 10,000 for stress scenarios. Every new mock elimination adds one Kill Point to its killer's squad. Event timestamps advance on a fixed fictional match clock; they do not claim to be current real-world events.
 - `src/components/PubgMatchPanel.tsx`: useSyncExternalStore subscription and explicit Next mock update / Start simulation / Pause simulation controls. Auto mode runs every 5 seconds, shares one interval across subscribers, ignores duplicate starts and stops when the last subscriber unmounts. Queued stale ticks cannot restart or change a paused source. Remount preserves the in-memory snapshot in paused mode. An optional source prop supports isolated simulations/tests.
 - `tests/match.test.ts`, `tests/match.html`, `tests/match.tsx`, `tsconfig.json`: selector/data/store tests plus a strict-typechecked React StrictMode fixture with a controlled scheduler. `Arena.tsx` and `styles.css` integrate the panel; Countdown and Claim implementation files are unchanged.
 
@@ -96,3 +96,32 @@ Verification on November 6, 2026:
 - **PASS regressions:** all 12 browser countdown assertions and all 9 browser claim assertions after match-panel integration, in addition to the existing Node cases.
 
 No official live API is connected. Automatic simulation starts only when requested and is clearly labeled; updates are synchronous local mock events, not a network subscription. Actual screen-reader products, cross-browser/device behavior, long-duration heap profiling and Lighthouse remain NOT TESTED. No external assets or dependencies were added.
+
+## Virtual kill-feed and safe updates
+
+- `src/components/VirtualKillFeed.tsx`: renders only a calculated window of 144px rows, with three overscan rows on either side (at most ten mounted rows in the current viewport). Stable eventId keys and memoized event rows reuse existing DOM. A passive scroll listener coalesces changes through one requestAnimationFrame; ResizeObserver handles viewport measurements. Unmount removes the listener, disconnects the observer, cancels the frame and guards late callbacks.
+- `src/domain/virtualFeed.ts`: pure window/clamping and event-anchor reconciliation. At the top, new events stay visible. While reading history, prepends preserve the first visible eventId and its pixel offset. If retention removes that anchor, position clamps to the oldest retained history. Changing the squad filter deliberately starts at the top of the new result set. Native CSS scroll anchoring is disabled in this viewport to avoid double compensation.
+- `KillFeed.tsx`: React.memo prevents unrelated parent updates from rerendering the feed. useMemo caches the potentially large sort/filter result by immutable events reference and squad filter, not by scroll position. The four-row leaderboard needs no additional memoization or derived state.
+- `mockMatchData.ts`, `mockMatchSource.ts`: deterministic 100/1,000/10,000-event fixtures, bounded source history and a generation token for each simulation run. A queued callback from an old paused run cannot publish during a newer run. Revisions/IDs only advance on synchronous local steps, so there are no overlapping match HTTP requests or out-of-order network responses to reconcile. No new polling transport or unnecessary AbortController was added. Existing Claim cancellation/version handling remains unchanged.
+- `styles.css`: fixed row geometry, keyboard-visible history controls, contained scrolling and two-line visual wrapping limits. Full event text stays in each rendered row's DOM. Native list items expose aria-posinset/aria-setsize; the focusable region supports Arrow/Page/Home/End keys and explicit Newest/Newer/Older buttons. Offscreen events are intentionally not mounted; assistive technology can traverse retained history through these controls. Actual screen-reader products remain untested.
+- `tests/virtualFeed.test.ts`, `tests/virtual.html`, `tests/virtual.tsx`, `tests/match.test.ts`, `tsconfig.json`: window/anchor/retention/generation tests, controlled-scheduler browser stress verification and strict typechecking. Countdown, Claim and Leaderboard implementation files were not changed.
+
+Verification on November 6, 2026:
+
+- **PASS: 53 Node tests** (43 previous + 10 virtual-feed cases), including window bounds for all three sizes, prepends, retained/removed anchors, filter resets, history caps, unique IDs and old-run callback rejection. Existing match retention test now uses an explicit 50-event test configuration.
+- **PASS: build/TypeScript strict**, including all browser fixtures; no dependency changes.
+- **PASS: 24 browser stress assertions** at `/tests/virtual.html` (8 per dataset): bounded DOM, exact 144px geometry, one scroll listener/observer under StrictMode, 20 alternating scroll positions, live prepend anchor/pixel preservation, filter resets, filter changes during simulation, and complete interval/listener/observer/frame cleanup.
+
+| Mock events | Peak mounted rows observed | StrictMode mount | Controlled scroll/update/filter/cleanup checks |
+| --- | --- | --- | --- |
+| 100 | 9 | 14.00ms | 109.10ms |
+| 1,000 | 9 | 7.20ms | 129.00ms |
+| 10,000 | 9 | 7.20ms | 246.40ms |
+
+These are a single Chromium run at 1280×720 in development StrictMode. Mount timing surrounds flushSync into the real DOM; the final column includes 20 programmatic scroll checks plus live/filter/cleanup assertions with controlled RAF delivery. It is neither FPS nor React DevTools Profiler timing. Warmup/JIT/order affect the values, so they do not establish that larger datasets render faster. The stable DOM bound is the primary performance result.
+
+Use **Open 10,000-event preview** on the same fixture for native scrolling. PageDown, Home/End and Older navigation were checked with the normal browser RAF path: End reached event mock-kill-1 with only six rows mounted. At 375px, all mounted rows measured 144px and page scrollWidth=clientWidth=360px. Filtering Cerberus showed a 2,500-event result set with bounded rows and correct ARIA positions. No key warnings or console errors were observed.
+
+React DevTools Profiler UI, production FPS/CPU traces, long-duration heap profiling and real assistive technology are **NOT TESTED**. Match updates have no asynchronous HTTP request to abort; unmount of an actual pending mock Claim is covered by the unchanged claim regression fixture. Browser background throttling can delay simulation delivery, but each delivered step is atomic and stale run callbacks are rejected.
+
+After virtualization, all **12 Countdown**, **9 Claim** (including an actual pending async unmount) and **8 Match lifecycle** browser regression assertions passed. Console warning/error logs were empty. The existing project-rules.md and all HW1/HW2 code remain unchanged.

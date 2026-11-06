@@ -97,15 +97,20 @@ select { background: #101510; color: var(--lime); border: 1px solid #596343; pad
 .leaderboard-table th[aria-sort] { color: var(--lime); }
 .leaderboard-table th[aria-sort="descending"]::after { content: ' ↓'; }
 .leaderboard-table th[aria-sort="ascending"]::after { content: ' ↑'; }
-.kill-feed-scroll { max-height: 360px; overflow-y: auto; border: 1px solid var(--line); background: #171b18; }
+.kill-feed-scroll { height: 360px; overflow-y: auto; overflow-anchor: none; border: 1px solid var(--line); background: #171b18; }
 .kill-feed-list { list-style: none; margin: 0; padding: 0; }
-.kill-feed-list li { padding: 16px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.kill-feed-list li { padding: 16px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; overflow: hidden; }
 .kill-feed-list li:last-child { border-bottom: 0; }
 .kill-feed-list time { color: var(--muted); font: 10px monospace; }
-.kill-feed-list p { margin-block: 9px; font-size: 12px; line-height: 1.7; }
+.kill-feed-list p { margin-block: 6px; font-size: 12px; line-height: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .kill-feed-list strong:first-child { color: var(--lime); }
 .kill-feed-list p span, .kill-feed-list small { color: var(--muted); }
-.kill-feed-list small { font-size: 10px; line-height: 1.7; }
+.kill-feed-list small { font-size: 10px; line-height: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.feed-help, .feed-window-info { color: var(--muted); font-size: 11px; line-height: 1.7; }
+.feed-history-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.feed-history-controls button { min-height: 44px; padding: 8px 12px; background: #20271b; color: #e4eccf; border: 1px solid #596343; font-size: 11px; cursor: pointer; }
+.feed-history-controls button:hover:not(:disabled) { border-color: var(--lime); }
+.feed-history-controls button:disabled { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); background: #171b18; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
 caption { caption-side: bottom; padding: 12px; text-align: left; color: var(--muted); font-size: 10px; }
