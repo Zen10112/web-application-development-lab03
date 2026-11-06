@@ -23,13 +23,13 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease, onTrigger }
       onLostPointerCapture={release}
       onKeyDown={(event) => {
         if (event.repeat) {
-          if (event.key === ' ' || event.key === 'Enter') event.preventDefault();
+          if (event.code === 'Space' || event.code === 'Enter' || event.code === 'NumpadEnter') event.preventDefault();
           return;
         }
-        if (event.key === ' ' || event.key === 'Enter') onPress(pad.id);
+        if (event.code === 'Space' || event.code === 'Enter' || event.code === 'NumpadEnter') onPress(pad.id);
       }}
       onKeyUp={(event) => {
-        if (event.key === ' ' || event.key === 'Enter') release();
+        if (event.code === 'Space' || event.code === 'Enter' || event.code === 'NumpadEnter') release();
       }}
       onBlur={release}
     >

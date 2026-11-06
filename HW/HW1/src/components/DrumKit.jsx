@@ -2,12 +2,17 @@ import { useId, useState } from 'react';
 import { DRUM_PADS } from '../data/drumPads.js';
 import { DrumPad } from './DrumPad.jsx';
 import { useDrumAudio } from '../hooks/useDrumAudio.js';
+import { useDrumKeyboard } from '../hooks/useDrumKeyboard.js';
+
+const PAD_MAP = new Map(DRUM_PADS.map((pad) => [pad.physicalCode, pad]));
 
 export function DrumKit() {
   const headingId = useId();
   const instructionsId = useId();
   const [activePadIds, setActivePadIds] = useState(() => new Set());
   const { triggerPad, audioError } = useDrumAudio();
+  const keyboardPadIds = useDrumKeyboard(PAD_MAP, triggerPad);
+  const hasActivePad = activePadIds.size > 0 || keyboardPadIds.size > 0;
 
   function pressPad(id) {
     setActivePadIds((previous) => new Set(previous).add(id));
@@ -38,14 +43,15 @@ export function DrumKit() {
           {DRUM_PADS.map((pad, index) => (
             <li key={pad.id}>
               <DrumPad pad={pad} number={index + 1}
-                isActive={activePadIds.has(pad.id)} onPress={pressPad} onRelease={releasePad}
+                isActive={activePadIds.has(pad.id) || keyboardPadIds.has(pad.id)}
+                onPress={pressPad} onRelease={releasePad}
                 onTrigger={triggerPad} />
             </li>
           ))}
         </ul>
         <footer className="console-footer">
-          <span className={`activity${activePadIds.size ? ' is-active' : ''}`}>
-            <span aria-hidden="true" />{activePadIds.size ? 'PAD ACTIVE' : 'STANDBY'}
+          <span className={`activity${hasActivePad ? ' is-active' : ''}`}>
+            <span aria-hidden="true" />{hasActivePad ? 'PAD ACTIVE' : 'STANDBY'}
           </span>
           <span>Nhấn để đánh · Âm thanh tự ngân</span>
         </footer>
@@ -53,8 +59,8 @@ export function DrumKit() {
       {audioError && <p role="alert" className="audio-error">{audioError}</p>}
       <p id={instructionsId} className="kit-instructions">
         <span className="instruction-label">CÁCH SỬ DỤNG</span>
-        Nhấn hoặc chạm vào pad. Dùng Tab để chọn, Enter hoặc Space để nhấn.
-        <span className="preview-note">Âm thanh tổng hợp trực tiếp · Phím tắt W–L sẽ được tích hợp ở bước tiếp theo.</span>
+        Nhấn W, A, S, D, J, K, L hoặc chạm vào pad. Dùng Tab để chọn, Enter hoặc Space để nhấn.
+        <span className="preview-note">Âm thanh tổng hợp trực tiếp · Phím tắt tạm ngưng khi nhập liệu hoặc dùng IME.</span>
       </p>
     </section>
   );

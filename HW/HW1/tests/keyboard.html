@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Drum Keyboard Tests</title>
+  </head>
+  <body>
+    <h1>Drum Keyboard Tests</h1>
+    <button id="run" type="button">Chạy kiểm thử</button>
+    <p id="summary" role="status">Chưa chạy.</p>
+    <ol id="results"></ol>
+    <label>Input <input id="input" /></label>
+    <label>Textarea <textarea id="textarea"></textarea></label>
+    <label>Select <select id="select"><option>W</option><option>A</option></select></label>
+    <p id="editor" contenteditable="true" aria-label="Editor"><span id="editor-child">Nhập tiếng Việt</span></p>
+    <section id="fixture" aria-label="Mounted keyboard hook"></section>
+    <script type="module" src="/tests/keyboard.jsx"></script>
+  </body>
+</html>
