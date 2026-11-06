@@ -1,14 +1,79 @@
 :root {
-  font-family: system-ui, sans-serif;
-  color: #192235;
-  background: #f5f7fb;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  color: #f3f1eb;
+  background: #111214;
+  font-synthesis: none;
+  color-scheme: dark;
   line-height: 1.5;
+  --muted: #a4a5aa;
+  --accent: #f3b85b;
 }
-
 * { box-sizing: border-box; }
-body { margin: 0; }
-main { max-width: 60rem; margin: auto; padding: 1.5rem; }
-h1 { font-size: clamp(1.6rem, 5vw, 2.5rem); }
-.pad-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 1rem; padding: 0; list-style: none; }
-.pad-list li { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: white; border: 1px solid #69758b; border-radius: 0.5rem; }
-kbd { font: inherit; font-weight: 700; }
+body { margin: 0; min-width: 0; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; }
+a { color: inherit; }
+.studio { max-width: 1152px; margin: auto; padding: 0 48px; }
+.studio-header { min-height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #303135; }
+.studio-brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 750; font-size: 14px; letter-spacing: 2px; }
+.brand-mark { display: grid; place-items: center; width: 32px; height: 32px; background: var(--accent); color: #191a1d; border-radius: 6px; font-size: 21px; letter-spacing: -3px; padding-right: 3px; }
+.edition, .eyebrow, .bank-count, .console-header h2, .console-footer, .instruction-label, .studio-footer { font-family: "Cascadia Code", Consolas, monospace; }
+.edition { color: var(--muted); font-size: 11px; letter-spacing: 1.5px; }
+.kit-intro { padding: 48px 0 32px; }
+.eyebrow { display: flex; align-items: center; gap: 9px; color: var(--accent); font-size: 11px; letter-spacing: 2px; margin: 0 0 18px; }
+.eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+h1 { font-size: clamp(36px, 5.2vw, 60px); line-height: 1.08; letter-spacing: -2.5px; font-weight: 750; margin: 0; }
+h1 > span { color: var(--accent); }
+.intro-copy { color: var(--muted); font-size: 15px; margin: 20px 0 0; }
+.pad-console { padding: 24px; background: linear-gradient(135deg, #25262b, #1c1d21); border: 1px solid #414247; border-radius: 18px; box-shadow: 0 20px 60px #0004, inset 0 1px #ffffff0a; }
+.console-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; }
+.console-header h2 { font-size: 12px; letter-spacing: 2px; font-weight: 600; margin: 0; }
+.console-header h2 > span { color: var(--accent); margin-left: 8px; }
+.bank-count { color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+.pad-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0; margin: 0; list-style: none; }
+.pad-grid > li { min-width: 0; }
+.pad-grid > li:last-child { grid-column: span 2; }
+.drum-pad { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%; min-height: 146px; padding: 16px 18px; border: 1px solid #606168; border-bottom: 3px solid #73747b; border-radius: 9px; background: linear-gradient(145deg, #37383f, #2b2c32); color: #f3f1eb; cursor: pointer; text-align: left; touch-action: manipulation; user-select: none; transition: background 120ms, border-color 120ms, box-shadow 120ms, transform 120ms; }
+.pad-number { color: #b7b7bf; font: 11px "Cascadia Code", Consolas, monospace; letter-spacing: 1px; }
+.pad-key { font: 500 32px/1 "Cascadia Code", Consolas, monospace; }
+.pad-name { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.pad-indicator { position: absolute; top: 18px; right: 18px; width: 6px; height: 6px; border-radius: 50%; background: #898a92; }
+@media (hover: hover) {
+  .drum-pad:hover { background: #414249; border-color: #a8a9b0; transform: translateY(-2px); }
+}
+:focus-visible { outline: 3px solid #ffe0a8; outline-offset: 5px; }
+.drum-pad.is-active, .drum-pad:active { color: #201a10; background: var(--accent); border-color: #ffdca0; box-shadow: 0 0 24px #f3b85b26, inset 0 2px 8px #4a2e161f; transform: translateY(2px); }
+.drum-pad.is-active .pad-number, .drum-pad:active .pad-number { color: #59411d; }
+.drum-pad.is-active .pad-indicator, .drum-pad:active .pad-indicator { background: #51330b; }
+.console-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; color: var(--muted); font-size: 11px; }
+.activity { display: inline-flex; align-items: center; gap: 8px; letter-spacing: 1px; }
+.activity > span { width: 6px; height: 6px; border-radius: 50%; background: #a4a5aa; }
+.activity.is-active { color: var(--accent); }
+.activity.is-active > span { background: var(--accent); }
+.kit-instructions { font-size: 13px; color: var(--muted); margin: 24px 0 40px; line-height: 1.8; }
+.instruction-label { display: block; color: #d4d4d9; font-size: 10px; letter-spacing: 1.5px; margin-bottom: 5px; }
+.preview-note { display: block; }
+.studio-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 22px 0 28px; border-top: 1px solid #303135; color: var(--muted); font-size: 10px; letter-spacing: 0.5px; }
+.studio-footer span > span { color: var(--accent); margin: 0 6px; }
+@media (max-width: 800px) {
+  .studio { padding: 0 28px; }
+  .pad-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pad-grid > li:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 480px) {
+  .studio { padding: 0 20px; }
+  .studio-header { min-height: 76px; }
+  .edition { display: none; }
+  .kit-intro { padding: 36px 0 28px; }
+  h1 { font-size: 38px; letter-spacing: -1.8px; }
+  .eyebrow { font-size: 9px; letter-spacing: 1.4px; }
+  .intro-copy { font-size: 14px; }
+  .pad-console { padding: 16px; border-radius: 14px; }
+  .pad-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .drum-pad { min-height: 135px; padding: 14px; }
+  .pad-name { font-size: 13px; }
+  .console-footer { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drum-pad { transition: none; }
+}

@@ -1,13 +1,20 @@
-import { DrumPadList } from './components/DrumPadList.jsx';
+import { DrumKit } from './components/DrumKit.jsx';
 
 export function App() {
   return (
-    <main>
-      <header>
-        <h1>Production Studio Drum Kit</h1>
-        <p>Danh sách pad. Phát âm thanh và điều khiển bàn phím sẽ được bổ sung.</p>
+    <main className="studio">
+      <header className="studio-header">
+        <a className="studio-brand" href="#drum-kit" aria-label="Studio 03, đến bộ trống">
+          <span className="brand-mark" aria-hidden="true">III</span>
+          STUDIO / 03
+        </a>
+        <span className="edition">PRODUCTION SERIES</span>
       </header>
-      <DrumPadList />
+      <DrumKit />
+      <footer className="studio-footer">
+        <span>HW 01 <span aria-hidden="true">/</span> PRODUCTION STUDIO DRUM KIT</span>
+        <span>React 19 · Lab 03</span>
+      </footer>
     </main>
   );
 }
