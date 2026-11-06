@@ -30,3 +30,15 @@ Phím tắt vật lý W/A/S/D/J/K/L dùng `event.code`, bỏ qua auto-repeat, s�
 Kiểm tra hook trên trình duyệt: chạy `npm run dev`, mở `/tests/keyboard.html`, nhấn “Chạy kiểm thử”. Fixture sử dụng React StrictMode và kiểm tra events mô phỏng, không phát âm thanh. UniKey thực tế cần kiểm tra thủ công trên máy bật bộ gõ.
 
 Chưa có hit log hay decibel meter. Âm thanh là tổng hợp, chưa phải sample trống thu âm. Chưa đánh giá WCAG hoặc Lighthouse.
+
+## Accessibility: phạm vi đã kiểm tra
+
+- Button native giữ Tab/Shift+Tab, Enter/Space; tên chứa label và phím tắt, `aria-pressed` dùng cùng boolean với giao diện. `aria-describedby` nối hướng dẫn; `aria-keyshortcuts` chỉ khai báo khi bật shortcut.
+- Trạng thái active có chữ “Đang nhấn”, không chỉ đổi màu. Focus outline rõ ràng, hỗ trợ reduced-motion và forced-colors.
+- Có checkbox tắt shortcut một ký tự theo [WCAG 2.1.4](https://www.w3.org/TR/WCAG22/#character-key-shortcuts); click và Enter/Space vẫn dùng được khi tắt.
+- Keyboard-only qua đủ 7 pad; fixture `/tests/accessibility.html` dùng component thật với bộ đếm trigger: mỗi Enter/Space, kể cả giữ phím, tăng đúng 1 hit.
+- Contrast các nhóm chữ được đo ở trạng thái thường/hover/active và lỗi: tối thiểu 5.02:1 trong các cặp đã kiểm tra. Ngưỡng chữ thường: [4.5:1](https://www.w3.org/TR/WCAG22/#contrast-minimum).
+- Ở viewport 375px: scrollWidth = clientWidth = 375; pad nhỏ nhất 146 × 135 CSS px, gap 10px; checkbox 24 × 24px trong label cao ít nhất 44px. Đối chiếu [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum).
+- Hồi quy: 13 kiểm thử keyboard trong React StrictMode và 7 kiểm thử Audio Engine đạt; production build đạt. Audio Engine và hook keyboard không thay đổi.
+
+Chưa xác minh trực tiếp bằng NVDA/JAWS/VoiceOver hoặc speech control; mới rà soát semantic/accessible name/state/description trong accessibility tree. Chưa có axe/Lighthouse trong project, chưa chạy audit tự động toàn trang; chưa kiểm chứng đầy đủ mọi tiêu chí WCAG 2.2 AA hoặc zoom/text spacing. Không coi các kiểm tra trên là chứng nhận WCAG hay Lighthouse 100.

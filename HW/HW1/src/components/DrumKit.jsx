@@ -9,9 +9,11 @@ const PAD_MAP = new Map(DRUM_PADS.map((pad) => [pad.physicalCode, pad]));
 export function DrumKit() {
   const headingId = useId();
   const instructionsId = useId();
+  const shortcutsId = useId();
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
   const [activePadIds, setActivePadIds] = useState(() => new Set());
   const { triggerPad, audioError } = useDrumAudio();
-  const keyboardPadIds = useDrumKeyboard(PAD_MAP, triggerPad);
+  const keyboardPadIds = useDrumKeyboard(PAD_MAP, triggerPad, shortcutsEnabled);
   const hasActivePad = activePadIds.size > 0 || keyboardPadIds.size > 0;
 
   function pressPad(id) {
@@ -39,13 +41,19 @@ export function DrumKit() {
           <h2>DRUM BANK <span>01</span></h2>
           <span className="bank-count">{String(DRUM_PADS.length).padStart(2, '0')} PADS</span>
         </header>
+        <label className="shortcut-control" htmlFor={shortcutsId}>
+          <input id={shortcutsId} type="checkbox" checked={shortcutsEnabled}
+            onChange={(event) => setShortcutsEnabled(event.target.checked)} />
+          Bật phím tắt W / A / S / D / J / K / L
+        </label>
         <ul className="pad-grid">
           {DRUM_PADS.map((pad, index) => (
             <li key={pad.id}>
               <DrumPad pad={pad} number={index + 1}
                 isActive={activePadIds.has(pad.id) || keyboardPadIds.has(pad.id)}
                 onPress={pressPad} onRelease={releasePad}
-                onTrigger={triggerPad} />
+                onTrigger={triggerPad} instructionsId={instructionsId}
+                shortcutsEnabled={shortcutsEnabled} />
             </li>
           ))}
         </ul>
@@ -59,8 +67,9 @@ export function DrumKit() {
       {audioError && <p role="alert" className="audio-error">{audioError}</p>}
       <p id={instructionsId} className="kit-instructions">
         <span className="instruction-label">CÁCH SỬ DỤNG</span>
-        Nhấn W, A, S, D, J, K, L hoặc chạm vào pad. Dùng Tab để chọn, Enter hoặc Space để nhấn.
-        <span className="preview-note">Âm thanh tổng hợp trực tiếp · Phím tắt tạm ngưng khi nhập liệu hoặc dùng IME.</span>
+        Dùng Tab hoặc Shift + Tab để chuyển giữa các pad; nhấn Enter hoặc Space để đánh pad đang chọn.
+        <span className="preview-note">Khi bật phím tắt, nhấn W, A, S, D, J, K, L để đánh pad tương ứng. Giữ phím không đánh lặp.</span>
+        <span className="preview-note">Có thể tắt phím tắt khi dùng trình đọc màn hình hoặc điều khiển bằng giọng nói. Phím tắt tạm ngưng khi nhập liệu hoặc dùng IME.</span>
       </p>
     </section>
   );
