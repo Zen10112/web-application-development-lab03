@@ -32,7 +32,7 @@ Phím tắt vật lý W/A/S/D/J/K/L dùng `event.code`, bỏ qua auto-repeat, s�
 
 Kiểm tra hook trên trình duyệt: chạy `npm run dev`, mở `/tests/keyboard.html`, nhấn “Chạy kiểm thử”. Fixture sử dụng React StrictMode và kiểm tra events mô phỏng, không phát âm thanh. UniKey thực tế cần kiểm tra thủ công trên máy bật bộ gõ.
 
-Âm thanh là tổng hợp, chưa phải sample trống thu âm. Chưa đánh giá WCAG hoặc Lighthouse đầy đủ.
+Âm thanh là tổng hợp, chưa phải sample trống thu âm. Phạm vi kiểm thử và Lighthouse thực đo nằm trong [FINAL_REPORT.md](FINAL_REPORT.md).
 
 ## Visual Audio Feedback
 
@@ -54,4 +54,11 @@ Mở `/tests/feedback.html` và nhấn “Chạy kiểm thử”: kiểm tra 50 
 - Ở viewport 375px: scrollWidth = clientWidth = 375; pad nhỏ nhất 146 × 135 CSS px, gap 10px; checkbox 24 × 24px trong label cao ít nhất 44px. Đối chiếu [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum).
 - Hồi quy: 13 kiểm thử keyboard trong React StrictMode và 8 kiểm thử Audio Engine đạt; production build đạt. Hook keyboard không thay đổi.
 
-Chưa xác minh trực tiếp bằng NVDA/JAWS/VoiceOver hoặc speech control; mới rà soát semantic/accessible name/state/description trong accessibility tree. Chưa có axe/Lighthouse trong project, chưa chạy audit tự động toàn trang; chưa kiểm chứng đầy đủ mọi tiêu chí WCAG 2.2 AA hoặc zoom/text spacing. Không coi các kiểm tra trên là chứng nhận WCAG hay Lighthouse 100.
+Chưa xác minh trực tiếp bằng NVDA/JAWS/VoiceOver hoặc speech control; mới rà soát semantic/accessible name/state/description trong accessibility tree. Đợt kiểm thử cuối đã chạy Lighthouse 13.6.0 qua npm exec trên production preview: Performance, Accessibility, Best Practices và SEO đều 100. Raw report ở reports/lighthouse-final.json. Điểm này không chứng nhận toàn bộ WCAG 2.2 AA; zoom/text spacing và AT thực tế vẫn chưa kiểm chứng.
+
+## Hồ sơ hoàn thiện
+
+- [TASK_DECOMPOSITION.md](TASK_DECOMPOSITION.md): công việc, file và commit thực tế.
+- [AI_FAILURE_AUDIT.md](AI_FAILURE_AUDIT.md): ba lỗi đã tái hiện, bằng chứng và cách sửa.
+- [FINAL_REPORT.md](FINAL_REPORT.md): checklist PASS/FAIL/NOT TESTED và lệnh chạy lại.
+- `npm test`: 8 Node tests; các trang `/tests/keyboard.html`, `/tests/feedback.html`, `/tests/reliability.html` có tổng 23 case tự động chạy trong browser khi bấm nút.

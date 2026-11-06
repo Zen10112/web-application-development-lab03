@@ -1,0 +1,6 @@
+Baseline source: aa1757a; browser fixture /tests/reliability.html, 2026-11-06.
+0 passed, 3 failed
+FAIL: native Enter clears on window blur: aria-pressed stuck true after window blur
+FAIL: native Space remains active until its own release: releasing Enter incorrectly clears held Space
+FAIL: pad boundary contrast against console is at least 3:1: boundary contrast 2.45:1
+Observed with the unmodified baseline components before applying fixes.

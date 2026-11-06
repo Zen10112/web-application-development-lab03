@@ -26,18 +26,18 @@ export function DrumKit() {
   const keyboardPadIds = useDrumKeyboard(PAD_MAP, triggerPad, shortcutsEnabled);
   const hasActivePad = activePadIds.size > 0 || keyboardPadIds.size > 0;
 
-  function pressPad(id) {
-    setActivePadIds((previous) => new Set(previous).add(id));
-  }
+  const pressPad = useCallback((id) => {
+    setActivePadIds((previous) => previous.has(id) ? previous : new Set(previous).add(id));
+  }, []);
 
-  function releasePad(id) {
+  const releasePad = useCallback((id) => {
     setActivePadIds((previous) => {
       if (!previous.has(id)) return previous;
       const next = new Set(previous);
       next.delete(id);
       return next;
     });
-  }
+  }, []);
 
   return (
     <section id="drum-kit" className="drum-kit" aria-labelledby={headingId}>

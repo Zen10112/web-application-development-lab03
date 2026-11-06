@@ -1,0 +1,13 @@
+Browser fixture /tests/reliability.html, 2026-11-06, after working-tree fixes.
+3 passed, 0 failed
+PASS: native Enter clears on window blur
+PASS: native Space remains active until its own release
+PASS: pad boundary contrast against console is at least 3:1
+
+Other observed suites:
+node --test src/services/audio/drumAudioEngine.test.js: 8 passed, 0 failed
+/tests/keyboard.html: 13 passed, 0 failed
+/tests/feedback.html: 7 passed, 0 failed; peak 6%; max frames 1; max timers 8
+/tests/accessibility.html: Enter, Space, held Enter, held Space => Hits: 4
+Production UI: 7 clicks + 7 shortcuts => sequence 14, retained history 12.
+Viewport 375px: clientWidth 360, scrollWidth 360 (15px scrollbar), minimum pad height 135px.

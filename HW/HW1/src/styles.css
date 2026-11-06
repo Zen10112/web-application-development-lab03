@@ -33,7 +33,7 @@ h1 > span { color: var(--accent); }
 .pad-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0; margin: 0; list-style: none; }
 .pad-grid > li { min-width: 0; }
 .pad-grid > li:last-child { grid-column: span 2; }
-.drum-pad { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%; min-height: 146px; padding: 16px 18px; border: 1px solid #606168; border-bottom: 3px solid #73747b; border-radius: 9px; background: linear-gradient(145deg, #37383f, #2b2c32); color: #f3f1eb; cursor: pointer; text-align: left; touch-action: manipulation; user-select: none; transition: background 120ms, border-color 120ms, box-shadow 120ms, transform 120ms; }
+.drum-pad { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%; min-height: 146px; padding: 16px 18px; border: 1px solid #8b8d98; border-bottom: 3px solid #9b9da6; border-radius: 9px; background: linear-gradient(145deg, #37383f, #2b2c32); color: #f3f1eb; cursor: pointer; text-align: left; touch-action: manipulation; user-select: none; transition: background 120ms, border-color 120ms, box-shadow 120ms, transform 120ms; }
 .pad-number { color: #b7b7bf; font: 11px "Cascadia Code", Consolas, monospace; letter-spacing: 1px; }
 .pad-key { font: 500 32px/1 "Cascadia Code", Consolas, monospace; }
 .pad-name { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
