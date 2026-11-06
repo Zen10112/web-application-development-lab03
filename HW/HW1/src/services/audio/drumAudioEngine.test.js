@@ -119,7 +119,7 @@ test('dispose stops active voices, disconnects all nodes and closes only once', 
   assert.equal(contexts[0].closeCalls, 1);
   assert.ok(contexts[0].nodes.every((node) => !node.connected));
   assert.ok(contexts[0].sources.every((source) => source.onended === null && source.stopped));
-  await assert.rejects(engine.triggerPad('kick'), /đã đóng/);
+  await assert.rejects(engine.triggerPad('kick'), /disposed/);
 });
 
 test('dispose during resume prevents a late sound', async () => {
@@ -135,8 +135,8 @@ test('unsupported browser and unknown pad reject with useful errors', async () =
   globalThis.AudioContext = undefined;
   globalThis.webkitAudioContext = undefined;
   const engine = createDrumAudioEngine();
-  await assert.rejects(engine.triggerPad('unknown'), /Không tìm thấy/);
-  await assert.rejects(engine.triggerPad('kick'), /không hỗ trợ Web Audio API/);
+  await assert.rejects(engine.triggerPad('unknown'), /Unknown drum pad/);
+  await assert.rejects(engine.triggerPad('kick'), /does not support the Web Audio API/);
   await engine.dispose();
 });
 

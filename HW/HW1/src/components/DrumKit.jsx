@@ -44,9 +44,9 @@ export function DrumKit() {
       <header className="kit-intro">
         <p className="eyebrow"><span aria-hidden="true" /> YOUR RHYTHM STARTS HERE</p>
         <h1 id={headingId}>Production Studio<br /><span>Drum Kit.</span></h1>
-        <p className="intro-copy">Bảy âm sắc. Một không gian sáng tạo.<br />Chạm vào pad để cảm nhận nhịp điệu của bạn.</p>
+        <p className="intro-copy">Seven sounds. One creative space.<br />Tap a pad and find your rhythm.</p>
       </header>
-      <section className="pad-console" aria-label="Bộ điều khiển trống" aria-describedby={instructionsId}>
+      <section className="pad-console" aria-label="Drum controls" aria-describedby={instructionsId}>
         <header className="console-header">
           <h2>DRUM BANK <span>01</span></h2>
           <span className="bank-count">{String(DRUM_PADS.length).padStart(2, '0')} PADS</span>
@@ -54,7 +54,7 @@ export function DrumKit() {
         <label className="shortcut-control" htmlFor={shortcutsId}>
           <input id={shortcutsId} type="checkbox" checked={shortcutsEnabled}
             onChange={(event) => setShortcutsEnabled(event.target.checked)} />
-          Bật phím tắt W / A / S / D / J / K / L
+          Enable W / A / S / D / J / K / L shortcuts
         </label>
         <ul className="pad-grid">
           {DRUM_PADS.map((pad, index) => (
@@ -72,19 +72,19 @@ export function DrumKit() {
           <span className={`activity${hasActivePad ? ' is-active' : ''}`}>
             <span aria-hidden="true" />{hasActivePad ? 'PAD ACTIVE' : 'STANDBY'}
           </span>
-          <span>Nhấn để đánh · Âm thanh tự ngân</span>
+          <span>Tap to play · Let the sound ring</span>
         </footer>
       </section>
       {audioError && <p role="alert" className="audio-error">{audioError}</p>}
-      <section className="visual-feedback" aria-label="Phản hồi trực quan">
+      <section className="visual-feedback" aria-label="Visual feedback">
         <AudioLevelMeter readLevel={readLevel} />
         <VisualHitLog hits={hits} announcement={announcement} />
       </section>
       <p id={instructionsId} className="kit-instructions">
-        <span className="instruction-label">CÁCH SỬ DỤNG</span>
-        Dùng Tab hoặc Shift + Tab để chuyển giữa các pad; nhấn Enter hoặc Space để đánh pad đang chọn.
-        <span className="preview-note">Khi bật phím tắt, nhấn W, A, S, D, J, K, L để đánh pad tương ứng. Giữ phím không đánh lặp.</span>
-        <span className="preview-note">Có thể tắt phím tắt khi dùng trình đọc màn hình hoặc điều khiển bằng giọng nói. Phím tắt tạm ngưng khi nhập liệu hoặc dùng IME.</span>
+        <span className="instruction-label">HOW TO PLAY</span>
+        Use Tab or Shift + Tab to move between pads. Press Enter or Space to play the focused pad.
+        <span className="preview-note">When shortcuts are enabled, press W, A, S, D, J, K or L to play a pad. Holding a key does not repeat hits.</span>
+        <span className="preview-note">Disable shortcuts when using a screen reader or voice control. Shortcuts pause while typing or using an IME.</span>
       </p>
     </section>
   );

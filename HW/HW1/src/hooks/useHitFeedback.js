@@ -6,7 +6,7 @@ export const ANNOUNCE_INTERVAL_MS = 2000;
 export function useHitFeedback() {
   const [hits, setHits] = useState([]);
   const [flashingIds, setFlashingIds] = useState(() => new Set());
-  const [announcement, setAnnouncement] = useState('Tóm tắt lượt đánh cập nhật tối đa mỗi 2 giây.');
+  const [announcement, setAnnouncement] = useState('Hit summaries update at most once every 2 seconds.');
   const sequence = useRef(0);
   const flashTimers = useRef(new Map());
   const announceTimer = useRef(null);
@@ -33,7 +33,7 @@ export function useHitFeedback() {
     if (announceTimer.current === null) {
       announceTimer.current = setTimeout(() => {
         const { count, last } = pending.current;
-        setAnnouncement(`${count} lượt đánh mới. Gần nhất: ${last.label}, phím ${last.key}, lượt ${last.sequence}.`);
+        setAnnouncement(`${count} new hits. Latest: ${last.label}, key ${last.key}, hit ${last.sequence}.`);
         pending.current = { count: 0, last: null };
         announceTimer.current = null;
       }, ANNOUNCE_INTERVAL_MS);

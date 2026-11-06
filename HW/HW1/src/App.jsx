@@ -4,7 +4,7 @@ export function App() {
   return (
     <main className="studio">
       <header className="studio-header">
-        <a className="studio-brand" href="#drum-kit" aria-label="III STUDIO / 03, đến bộ trống">
+        <a className="studio-brand" href="#drum-kit" aria-label="III STUDIO / 03, go to the drum kit">
           <span className="brand-mark" aria-hidden="true">III</span>{' '}
           STUDIO / 03
         </a>

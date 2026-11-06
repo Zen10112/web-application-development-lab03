@@ -1,64 +1,62 @@
-# HW1: Production Studio Drum Kit
+# HW1 — Production Studio Drum Kit
 
-React 19 + Vite + JavaScript JSX. Rules: `../project-rules.md`.
+React 19, Vite and JavaScript JSX. Follow `../project-rules.md`.
+
+## Run and test
 
 ```sh
 npm install
 npm run dev
+npm test
 npm run build
+npm run preview
 ```
 
-## Cấu trúc
+Open the following development fixtures and click **Run tests**:
 
-- `src/components/DrumKit.jsx`: bố cục bộ trống và trạng thái nhấn của từng pad.
-- `src/components/DrumPad.jsx`: button pad tái sử dụng, nhận trạng thái và callback.
-- `src/data/drumPads.js`: nguồn dữ liệu chung cho giao diện, Keyboard Hook và Audio Engine.
-- `src/hooks/useDrumAudio.js`: kết nối service với React, báo lỗi và cleanup khi unmount.
-- `src/hooks/useDrumKeyboard.js`: contract `useDrumKeyboard(padMap, onTriggerPad, isEnabled = true)`, trả về Set ID pad đang giữ bằng phím tắt.
-- `src/services/audio/drumAudioEngine.js`: Audio Engine với `triggerPad(id)`, `readLevel()` và `dispose()`.
-- `src/hooks/useHitFeedback.js`: 12 hit mới nhất, tối đa 7 timer highlight và 1 timer thông báo.
-- `src/components/VisualHitLog.jsx`: lịch sử tên/phím/số thứ tự, `output aria-live="polite"` gộp thông báo.
-- `src/components/AudioLevelMeter.jsx`: meter RMS từ AnalyserNode, không cập nhật React state mỗi frame.
+- `/tests/keyboard.html`: 13 keyboard, composition, editor isolation and lifecycle cases.
+- `/tests/feedback.html`: 7 history, audio meter, notification batching and cleanup cases.
+- `/tests/reliability.html`: 3 regression cases.
+- `/tests/accessibility.html`: use Tab, Enter and Space; each press should add one hit, including held keys.
 
-Mỗi pad có ID, label, physicalCode và sound preset bất biến. Âm thanh sẽ được tổng hợp bằng Web Audio API, không cần file âm thanh hoặc dependency bổ sung. Dùng `event.code` đối chiếu với `physicalCode`; tra pad bằng ID khi gọi Audio Engine.
+The browser fixtures are launched manually and run their assertions automatically. `npm test` runs 8 Node tests with a mocked Web Audio API.
 
-Click/chạm pad hoặc dùng Enter/Space khi focus để phát âm thanh. Mỗi hit tạo source riêng để phát chồng, kể cả cùng pad. Một AudioContext được tạo khi tương tác đầu tiên, tự resume nếu suspended. Gain tổng và compressor giảm đỉnh âm khi nhiều pad cùng phát.
+## Project structure
 
-Kick và hai tom dùng sine oscillator trượt cao độ xuống; snare dùng noise bandpass kèm triangle tạo thân âm; hi-hat/crash dùng noise highpass với thời gian ngân khác nhau; clap dùng ba burst noise. Các source kết thúc sẽ disconnect; buffer noise dùng chung được bỏ khi dispose, context đóng khi unmount. Không cần audio assets/dependency mới.
+- `src/data/drumPads.js`: immutable IDs, labels, physical key codes and synthesis presets shared by the UI, keyboard hook and Audio Engine.
+- `src/components/DrumKit.jsx`: layout and shared activation handler.
+- `src/components/DrumPad.jsx`: reusable native button, independent held-input tracking and accessible state.
+- `src/hooks/useDrumKeyboard.js`: `useDrumKeyboard(padMap, onTriggerPad, isEnabled = true)` returns the IDs held through physical shortcuts.
+- `src/hooks/useDrumAudio.js`: React integration, error handling and disposal.
+- `src/services/audio/drumAudioEngine.js`: `triggerPad(id)`, `readLevel()` and `dispose()`.
+- `src/hooks/useHitFeedback.js`: bounded history and transient feedback timers.
+- `src/components/VisualHitLog.jsx`: numbered hit history and batched polite announcements.
+- `src/components/AudioLevelMeter.jsx`: native RMS meter updated without React state changes per frame.
 
-Chạy kiểm tra service bằng `node --test src/services/audio/drumAudioEngine.test.js`.
+## Controls and sound
 
-Phím tắt vật lý W/A/S/D/J/K/L dùng `event.code`, bỏ qua auto-repeat, sự kiện đã xử lý, Ctrl/Alt/Meta, vùng nhập liệu và IME composition. Keyup, blur, tab ẩn, disable hoặc cleanup đều giải phóng trạng thái phím. Trạng thái chuột/button và shortcut được giữ riêng để không vô tình tắt nhau; cùng gọi `triggerPad(id)` để phát âm thanh.
+Click or tap a pad, or use Enter/Space when it is focused. Global W/A/S/D/J/K/L shortcuts use `event.code`. Repeated keydowns, handled events, Ctrl/Alt/Meta combinations, editable fields and composition events are ignored. Keyup, window blur, a hidden tab, disabling shortcuts and unmounting release shortcut state. Native keys and pointer IDs are tracked independently. A checkbox disables letter shortcuts for assistive technology users.
 
-Kiểm tra hook trên trình duyệt: chạy `npm run dev`, mở `/tests/keyboard.html`, nhấn “Chạy kiểm thử”. Fixture sử dụng React StrictMode và kiểm tra events mô phỏng, không phát âm thanh. UniKey thực tế cần kiểm tra thủ công trên máy bật bộ gõ.
+Each hit creates independent sources, including repeated hits on the same pad. A single AudioContext is created on the first interaction and resumed when suspended. Master gain and a compressor control overlapping signals. Kick and tom sounds use descending sine oscillators; snare combines filtered noise with a triangle-wave body; hi-hat/crash use high-pass noise with different decays; clap uses three noise bursts. Sources disconnect after playback, the noise buffer is shared, and unmount closes the context. No audio assets or additional runtime dependencies are required.
 
-Âm thanh là tổng hợp, chưa phải sample trống thu âm. Phạm vi kiểm thử và Lighthouse thực đo nằm trong [FINAL_REPORT.md](FINAL_REPORT.md).
+## Visual feedback
 
-## Visual Audio Feedback
+All activation paths record a hit before requesting audio, so history and the visible Hit indicator remain useful when speakers are muted or Web Audio is unavailable. History retains the latest 12 entries. A polite, atomic output summarizes new hits at most once every 2 seconds; the list does not announce every change. At most seven highlight timers and one summary timer are retained.
 
-Click, Enter/Space và shortcut cùng đi qua hàm kích hoạt chung: ghi hit và highlight trước khi gọi Audio Engine. Vì vậy lịch sử và chữ “Đã đánh” vẫn hữu ích khi tắt loa hoặc không có Web Audio. Lịch sử giữ tối đa 12 mục; số thứ tự tăng liên tục. Danh sách không tự đọc từng hit; output polite/atomic tóm tắt tối đa một lần mỗi 2 giây, kể cả chơi liên tục.
+The meter reads an AnalyserNode after the compressor and displays digital RMS amplitude multiplied by 100%. This is neither dBFS nor dB SPL and does not measure environmental sound. Display updates retain the maximum sampled RMS between updates so short hits remain visible. Low values may round to 0%. If the AudioContext is suspended or unavailable, the meter reads zero while history continues to work.
 
-Meter lấy tín hiệu sau compressor bằng AnalyserNode, tính RMS từ buffer Float32 tái sử dụng và hiển thị biên độ số ×100%. Đây không phải dBFS, dB SPL hoặc phép đo âm thanh môi trường. Meter giữ peak của các mẫu RMS giữa hai lần cập nhật để ghi nhận hit ngắn; giá trị có thể làm tròn về 0% ở mức rất thấp. Tắt loa/tab mute vẫn có thể thấy tín hiệu số nếu AudioContext tiếp tục chạy; khi context suspended/không hỗ trợ audio, meter về 0%, log vẫn hoạt động.
+One requestAnimationFrame loop samples the signal and writes changed DOM values at most 10 times per second, or 2.5 times per second with reduced motion. It pauses while the document is hidden. Unmount cancels frames and timers and disconnects audio resources.
 
-Chỉ một requestAnimationFrame loop; lấy mẫu mỗi frame, ghi DOM tối đa 10 lần/giây (2.5 lần/giây với reduced-motion), bỏ qua giá trị không đổi. Tab ẩn tạm dừng loop; unmount hủy frame/timer và disconnect analyser cùng các node audio.
+## Verified results and limits
 
-Mở `/tests/feedback.html` và nhấn “Chạy kiểm thử”: kiểm tra 50 hit không âm thanh, giới hạn history/timer, gộp thông báo, meter với AudioContext thật, ẩn/hiện tab, StrictMode và unmount/remount. Đây là kiểm tra giới hạn tài nguyên và cleanup, chưa thay thế heap profiling dài hạn hay thử trực tiếp với người dùng trình đọc màn hình.
+The verification commit `5442d3f` passed the build, 8 Node tests and 23 browser cases. Native Enter/Space testing produced exactly 4 hits for 4 presses. At a 375px viewport there was no horizontal overflow, with pad heights of at least 135px and 10px grid gaps. Tested text contrast was at least 5.02:1. Three verified bugs were fixed: stuck native active state on window blur, incorrect release of a simultaneously held native key, and insufficient pad-border contrast.
 
-## Accessibility: phạm vi đã kiểm tra
+Lighthouse 13.6.0 on the previous production build measured Performance 100, Accessibility 100, Best Practices 100 and SEO 100. The original JSON reports in `reports/` are preserved unchanged as historical evidence, including captured Vietnamese labels. Those scores have not been remeasured for this English translation. Lighthouse scores do not certify full WCAG 2.2 AA compliance.
 
-- Button native giữ Tab/Shift+Tab, Enter/Space; tên chứa label và phím tắt, `aria-pressed` dùng cùng boolean với giao diện. `aria-describedby` nối hướng dẫn; `aria-keyshortcuts` chỉ khai báo khi bật shortcut.
-- Trạng thái active có chữ “Đang nhấn”, không chỉ đổi màu. Focus outline rõ ràng, hỗ trợ reduced-motion và forced-colors.
-- Có checkbox tắt shortcut một ký tự theo [WCAG 2.1.4](https://www.w3.org/TR/WCAG22/#character-key-shortcuts); click và Enter/Space vẫn dùng được khi tắt.
-- Keyboard-only qua đủ 7 pad; fixture `/tests/accessibility.html` dùng component thật với bộ đếm trigger: mỗi Enter/Space, kể cả giữ phím, tăng đúng 1 hit.
-- Contrast các nhóm chữ được đo ở trạng thái thường/hover/active và lỗi: tối thiểu 5.02:1 trong các cặp đã kiểm tra. Ngưỡng chữ thường: [4.5:1](https://www.w3.org/TR/WCAG22/#contrast-minimum).
-- Ở viewport 375px: scrollWidth = clientWidth = 375; pad nhỏ nhất 146 × 135 CSS px, gap 10px; checkbox 24 × 24px trong label cao ít nhất 44px. Đối chiếu [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum).
-- Hồi quy: 13 kiểm thử keyboard trong React StrictMode và 8 kiểm thử Audio Engine đạt; production build đạt. Hook keyboard không thay đổi.
+Actual UniKey/Telex/VNI operation, NVDA/JAWS/VoiceOver, speech control, long-duration heap profiling, React DevTools profiling and comprehensive zoom/text-spacing/cross-browser testing remain unverified.
 
-Chưa xác minh trực tiếp bằng NVDA/JAWS/VoiceOver hoặc speech control; mới rà soát semantic/accessible name/state/description trong accessibility tree. Đợt kiểm thử cuối đã chạy Lighthouse 13.6.0 qua npm exec trên production preview: Performance, Accessibility, Best Practices và SEO đều 100. Raw report ở reports/lighthouse-final.json. Điểm này không chứng nhận toàn bộ WCAG 2.2 AA; zoom/text spacing và AT thực tế vẫn chưa kiểm chứng.
+## Development records
 
-## Hồ sơ hoàn thiện
-
-- [TASK_DECOMPOSITION.md](TASK_DECOMPOSITION.md): công việc, file và commit thực tế.
-- [AI_FAILURE_AUDIT.md](AI_FAILURE_AUDIT.md): ba lỗi đã tái hiện, bằng chứng và cách sửa.
-- [FINAL_REPORT.md](FINAL_REPORT.md): checklist PASS/FAIL/NOT TESTED và lệnh chạy lại.
-- `npm test`: 8 Node tests; các trang `/tests/keyboard.html`, `/tests/feedback.html`, `/tests/reliability.html` có tổng 23 case tự động chạy trong browser khi bấm nút.
+- [TASK_DECOMPOSITION.md](TASK_DECOMPOSITION.md): completed work and actual commits.
+- [AI_FAILURE_AUDIT.md](AI_FAILURE_AUDIT.md): three verified bugs and before/after evidence.
+- `reports/`: original Lighthouse reports and regression logs.

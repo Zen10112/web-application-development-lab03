@@ -61,12 +61,12 @@ export function AudioLevelMeter({ readLevel }) {
 
   return (
     <section className="feedback-panel" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`}>Mức tín hiệu âm thanh</h2>
-      <label htmlFor={id}>Biên độ số RMS</label>
+      <h2 id={`${id}-heading`}>Audio signal level</h2>
+      <label htmlFor={id}>Digital RMS amplitude</label>
       <meter ref={meterRef} id={id} min="0" max="100"
         aria-describedby={`${id}-note`} aria-live="off" />
       <span ref={valueRef} className="level-value" aria-hidden="true">0%</span>
-      <p id={`${id}-note`} className="level-note">Thang biên độ tín hiệu số 0–100%, không phải dB SPL hay mức âm thanh môi trường. Tắt loa vẫn xem được tín hiệu.</p>
+      <p id={`${id}-note`} className="level-note">Digital signal amplitude from 0–100%, not dB SPL or environmental sound level. The signal remains visible with speakers muted.</p>
     </section>
   );
 }

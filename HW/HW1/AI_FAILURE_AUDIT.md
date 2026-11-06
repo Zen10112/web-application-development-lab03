@@ -1,38 +1,38 @@
 # HW1 — AI failure audit
 
-Ngày 06/11/2026. Ba lỗi dưới đây được xác minh trên code AI đã tạo ở các commit HW1; không phải lỗi cố tình chèn vào. Baseline: aa1757a. Bằng chứng trước sửa: reports/regression-before.txt; fixture có thể chạy bằng Vite tại /tests/reliability.html. Sau sửa: 3 passed / 0 failed.
+Verified on November 6, 2026. These three bugs were reproduced in AI-generated HW1 code, not deliberately introduced for this audit. Baseline: aa1757a. Original evidence: reports/regression-before.txt. Fix commit: **5442d3f**, `test(hw1): verify accessibility and reliability`. Browser fixture: `/tests/reliability.html`.
 
-Commit sửa cả ba lỗi: commit chứa báo cáo này, message `test(hw1): verify accessibility and reliability`. Không ghi hash giả trước khi Git tạo commit; lấy hash thật bằng `git log -1 --format="%h %s" -- src/components/DrumPad.jsx`.
+## 01 — Native pad remains active after window blur
 
-## 01 — Native pad bị kẹt active khi mất focus cửa sổ
+- **Requirement:** return active state to inactive after losing focus or switching tabs.
+- **Faulty code:** DrumPad relied on keyup and element blur. It did not clear native Enter/Space state on window blur or document visibility changes. The shortcut hook cleared only its separate W–L state. This behavior originated in 3d7c1ae and remained in aa1757a.
+- **Reproduction:** dispatch Enter keydown on the button, confirm aria-pressed=true, then dispatch window blur without keyup.
+- **Observed evidence:** `FAIL: native Enter clears on window blur: aria-pressed stuck true after window blur`.
+- **Fix:** track held input sources in a ref; clear native sources on window blur/hidden document; remove listeners on unmount. Use a latest-callback ref to avoid stale closures and repeated listener registration.
+- **Retest:** `PASS: native Enter clears on window blur`.
 
-- Task: giao diện/native accessibility; active phải trở về inactive khi mất focus/chuyển tab. Code xuất phát từ 3d7c1ae, còn trong aa1757a.
-- Code lỗi: DrumPad chỉ có `onKeyUp={...release}` và `onBlur={release}`; không theo dõi window blur/visibility cho nguồn native Enter/Space. Hook shortcut chỉ xóa Set riêng của W–L, không xóa Set native trong DrumKit.
-- Tái hiện: dispatch keydown Enter lên button; xác nhận aria-pressed=true; dispatch window blur mà button không phát keyup.
-- Bằng chứng: `FAIL: native Enter clears on window blur: aria-pressed stuck true after window blur`.
-- Sửa: theo dõi nguồn input đang giữ trong ref; nghe window blur và document visibilitychange, clear nguồn native; cleanup listener khi unmount. Callback release mới nhất nằm trong ref để listener ổn định, không stale closure.
-- Sau sửa: `PASS: native Enter clears on window blur`.
+## 02 — Releasing Enter incorrectly clears held Space
 
-## 02 — Thả Enter tắt nhầm Space vẫn đang giữ
+- **Requirement:** aria-pressed must reflect the actual active state, including native Enter/Space controls.
+- **Faulty code:** keyup unconditionally called release for either key. State indexed only by pad ID could not distinguish two native input sources on one pad. This originated in 3d7c1ae and remained in aa1757a.
+- **Reproduction:** Space keydown, Enter keydown, Enter keyup. Space remained held but aria-pressed became false.
+- **Observed evidence:** `FAIL: native Space remains active until its own release: releasing Enter incorrectly clears held Space`.
+- **Fix:** track physical key codes and pointer IDs separately. Remove only the released source; release the pad when no source remains. Native audio still triggers only through onClick, not both click and keydown.
+- **Retest:** `PASS: native Space remains active until its own release`. Native Enter, Space, held Enter and held Space also produced exactly four hits for four presses.
 
-- Task: đồng bộ aria-pressed với trạng thái active thực tế; hỗ trợ native Enter/Space. Code xuất phát từ 3d7c1ae, còn trong aa1757a.
-- Code lỗi: `onKeyUp` gọi `release()` vô điều kiện cho cả Enter và Space. Một boolean/Set theo pad ID không phân biệt hai nguồn nhấn native của cùng pad.
-- Tái hiện: keydown Space, keydown Enter, keyup Enter; Space chưa được thả nhưng aria-pressed=false.
-- Bằng chứng: `FAIL: native Space remains active until its own release: releasing Enter incorrectly clears held Space`.
-- Sửa: Set nguồn theo mã phím/pointer ID. Keyup chỉ xóa nguồn tương ứng; chỉ release pad khi Set rỗng. Giữ onClick là nơi duy nhất gọi audio cho native button, không thêm trigger ở keydown.
-- Sau sửa: `PASS: native Space remains active until its own release`. Native keyboard fixture thêm xác minh Enter, Space và giữ mỗi phím: đúng 4 hit cho 4 lần nhấn, không double trigger.
+## 03 — Pad boundary contrast was insufficient
 
-## 03 — Contrast đường biên pad không đủ
+- **Requirement:** controls must remain visually distinguishable under WCAG 2.2 AA.
+- **Faulty code:** border #606168 against the console's brightest gradient endpoint #25262b. The CSS originated in 3d7c1ae and remained after 60ca8b1 because that review measured text contrast only.
+- **Detection:** the browser fixture read the real button's computed border color and calculated sRGB relative-luminance contrast against the console background. This boundary check uses a 3:1 threshold rather than the 4.5:1 ordinary-text threshold.
+- **Observed evidence:** `FAIL: pad boundary contrast against console is at least 3:1: boundary contrast 2.45:1`.
+- **Fix:** border #8b8d98 and bottom border #9b9da6; sound presets and text colors were preserved.
+- **Retest:** `PASS: pad boundary contrast against console is at least 3:1`.
 
-- Task: WCAG 2.2 AA, khả năng nhận biết vùng điều khiển. CSS nguồn từ 3d7c1ae; còn tồn tại sau 60ca8b1 vì đợt đó mới đo contrast văn bản.
-- Code lỗi: `border: 1px solid #606168` trên console có đầu gradient sáng nhất #25262b.
-- Cách phát hiện: fixture đọc computed border color của button thật, tính relative luminance sRGB và contrast với nền console. Đây là phép đo đường biên, không nhầm với ngưỡng text 4.5:1.
-- Bằng chứng: `FAIL: pad boundary contrast against console is at least 3:1: boundary contrast 2.45:1`.
-- Sửa: border #8b8d98, bottom border #9b9da6, giữ text/preset/audio không đổi.
-- Sau sửa: `PASS: pad boundary contrast against console is at least 3:1`.
+## Additional evidence and limits
 
-## Bằng chứng bổ sung, không dùng để thổi số lượng lỗi
+Baseline Lighthouse found a favicon.ico 404 and robots.txt falling back to HTML. A data-URI icon declaration and public/robots.txt fixed those findings. Original before/after JSON reports remain unchanged in reports/; captured text may be Vietnamese because those audits predate the English translation.
 
-- Lighthouse baseline: favicon.ico 404 làm Best Practices 96; đã khai báo icon data URI. Robots fallback HTML làm SEO 91; đã thêm public/robots.txt. Raw audit trước/sau trong reports/.
-- Kiểm thử meter ở đợt trước từng chờ tín hiệu quá sớm; đã sửa cách chờ và giữ peak. Không gọi đây là bằng chứng một lỗi audio khác nếu chưa tái hiện trên baseline lưu trong Git.
-- Không có bằng chứng DevTools heap snapshot/NVDA/UniKey thực tế; không bịa các loại bằng chứng đó.
+An earlier meter test waited for audio too soon. Its wait strategy and peak capture were improved, but this is not counted as another independently reproduced baseline bug. No heap snapshot, real screen-reader test or native UniKey evidence is claimed.
+
+The final reliability result was **3 passed, 0 failed**, alongside 8 Node audio tests, 13 keyboard cases and 7 feedback cases. No Git hashes, scores or DevTools evidence were invented.

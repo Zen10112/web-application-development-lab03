@@ -82,7 +82,7 @@ document.querySelector('#run').addEventListener('click', async () => {
     await flush();
     await check('7 physical codes, translated key values and keyup', async () => {
       for (const pad of DRUM_PADS) {
-        const event = key('keydown', pad.physicalCode, { key: 'ư' });
+        const event = key('keydown', pad.physicalCode, { key: 'Unidentified' });
         await flush();
         assert(event.defaultPrevented && active() === pad.id, `Active ${pad.id}`);
         key('keyup', pad.physicalCode);

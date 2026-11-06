@@ -43,7 +43,7 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease, onTrigger,
     <button
       type="button"
       className={`drum-pad${isActive ? ' is-active' : ''}${isFlashing ? ' has-hit' : ''}`}
-      aria-label={`${String(number).padStart(2, '0')} ${pad.physicalCode.slice(3)} ${pad.label} ${isActive ? 'Đang nhấn' : isFlashing ? 'Đã đánh' : 'Sẵn sàng'}, phím tắt ${pad.physicalCode.slice(3)}${shortcutsEnabled ? '' : ' (đã tắt)'}`}
+      aria-label={`${String(number).padStart(2, '0')} ${pad.physicalCode.slice(3)} ${pad.label} ${isActive ? 'Pressed' : isFlashing ? 'Hit' : 'Ready'}, shortcut ${pad.physicalCode.slice(3)}${shortcutsEnabled ? '' : ' (disabled)'}`}
       aria-pressed={isActive}
       aria-keyshortcuts={shortcutsEnabled ? pad.physicalCode.slice(3) : undefined}
       aria-describedby={instructionsId}
@@ -71,7 +71,7 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease, onTrigger,
       <span className="pad-number" aria-hidden="true">{String(number).padStart(2, '0')}</span>{' '}
       <kbd className="pad-key" aria-hidden="true">{pad.physicalCode.slice(3)}</kbd>{' '}
       <span className="pad-name">{pad.label}</span>{' '}
-      <span className="pad-status" aria-hidden="true">{isActive ? 'Đang nhấn' : isFlashing ? 'Đã đánh' : 'Sẵn sàng'}</span>
+      <span className="pad-status" aria-hidden="true">{isActive ? 'Pressed' : isFlashing ? 'Hit' : 'Ready'}</span>
     </button>
   );
 }

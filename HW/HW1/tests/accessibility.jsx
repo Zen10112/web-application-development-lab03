@@ -11,7 +11,7 @@ function NativeButtonCheck() {
   return (
     <section className="studio">
       <h1>Native keyboard check</h1>
-      <p id="instructions">Tab đến Kick; mỗi lần Enter hoặc Space phải tăng đúng 1 hit. Giữ phím không phát lặp.</p>
+      <p id="instructions">Tab to Kick. Each Enter or Space press must add exactly one hit. Holding a key must not repeat hits.</p>
       <DrumPad pad={DRUM_PADS[0]} number={1} isActive={active}
         onPress={() => setActive(true)} onRelease={() => setActive(false)}
         onTrigger={async () => setHits((previous) => previous + 1)}

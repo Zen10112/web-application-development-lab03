@@ -22,7 +22,7 @@ export function useDrumAudio() {
       if (audioError && engineRef.current === engine) setAudioError(null);
     } catch (error) {
       if (engineRef.current === engine) {
-        setAudioError(error instanceof Error ? error.message : 'Không thể phát âm thanh. Hãy thử lại.');
+        setAudioError(error instanceof Error ? error.message : 'Could not play audio. Please try again.');
       }
     }
   }, [audioError]);

@@ -16,7 +16,7 @@ export function createDrumAudioEngine(pads = DRUM_PADS) {
   function initialize() {
     if (context) return;
     const AudioContextClass = globalThis.AudioContext ?? globalThis.webkitAudioContext;
-    if (!AudioContextClass) throw new Error('Trình duyệt không hỗ trợ Web Audio API.');
+    if (!AudioContextClass) throw new Error('This browser does not support the Web Audio API.');
 
     context = new AudioContextClass();
     try {
@@ -43,21 +43,21 @@ export function createDrumAudioEngine(pads = DRUM_PADS) {
   }
 
   async function triggerPad(id) {
-    if (disposed) throw new Error('Audio Engine đã đóng.');
+    if (disposed) throw new Error('The Audio Engine has been disposed.');
     const pad = padsById.get(id);
-    if (!pad) throw new Error(`Không tìm thấy drum pad: ${id}`);
+    if (!pad) throw new Error(`Unknown drum pad: ${id}`);
     initialize();
 
     // Called directly from the click gesture, before awaiting anything else.
     if (context.state !== 'running') {
-      if (context.state === 'closed') throw new Error('AudioContext đã đóng. Hãy tải lại trang.');
+      if (context.state === 'closed') throw new Error('The AudioContext is closed. Reload the page.');
       if (!resumePromise) {
         resumePromise = context.resume().finally(() => { resumePromise = null; });
       }
       await resumePromise;
     }
     if (disposed) return;
-    if (context.state !== 'running') throw new Error('Không thể bật âm thanh. Hãy thử nhấn pad lần nữa.');
+    if (context.state !== 'running') throw new Error('Could not enable audio. Try pressing a pad again.');
 
     const { sound } = pad;
     const now = context.currentTime;

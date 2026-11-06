@@ -90,7 +90,7 @@ document.querySelector('#run').addEventListener('click', async () => {
     });
     await check('one polite summary for the burst; transient effects clear', async () => {
       await wait(2100);
-      assert(document.querySelector('output').textContent.includes('50 lượt đánh mới'), 'Wrong summary');
+      assert(document.querySelector('output').textContent.includes('50 new hits'), 'Wrong summary');
       assert(announcements === 1, 'Too many live summaries');
       assert(controls.flashingIds.size === 0 && timers.size === 0, 'Timers or flashes retained');
     });
