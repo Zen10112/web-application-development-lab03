@@ -13,6 +13,8 @@
  *   type: 'noise',
  *   filterType: 'highpass' | 'bandpass',
  *   filterFrequencyHz: number,
+ *   bodyFrequencyHz?: number,
+ *   bursts?: number,
  *   durationMs: number,
  *   gain: number
  * }>} DrumSound
@@ -30,7 +32,7 @@ export const DRUM_PADS = Object.freeze([
   { id: 'kick', label: 'Kick', physicalCode: 'KeyW',
     sound: { type: 'oscillator', waveform: 'sine', frequencyHz: 150, endFrequencyHz: 45, durationMs: 450, gain: 0.8 } },
   { id: 'snare', label: 'Snare', physicalCode: 'KeyA',
-    sound: { type: 'noise', filterType: 'bandpass', filterFrequencyHz: 1800, durationMs: 180, gain: 0.5 } },
+    sound: { type: 'noise', filterType: 'bandpass', filterFrequencyHz: 1800, bodyFrequencyHz: 185, durationMs: 180, gain: 0.5 } },
   { id: 'closed-hat', label: 'Closed Hi-Hat', physicalCode: 'KeyS',
     sound: { type: 'noise', filterType: 'highpass', filterFrequencyHz: 7000, durationMs: 70, gain: 0.25 } },
   { id: 'high-tom', label: 'High Tom', physicalCode: 'KeyD',
@@ -38,7 +40,7 @@ export const DRUM_PADS = Object.freeze([
   { id: 'low-tom', label: 'Low Tom', physicalCode: 'KeyJ',
     sound: { type: 'oscillator', waveform: 'sine', frequencyHz: 180, endFrequencyHz: 75, durationMs: 320, gain: 0.6 } },
   { id: 'clap', label: 'Clap', physicalCode: 'KeyK',
-    sound: { type: 'noise', filterType: 'bandpass', filterFrequencyHz: 1400, durationMs: 130, gain: 0.45 } },
+    sound: { type: 'noise', filterType: 'bandpass', filterFrequencyHz: 1400, bursts: 3, durationMs: 130, gain: 0.45 } },
   { id: 'crash', label: 'Crash', physicalCode: 'KeyL',
     sound: { type: 'noise', filterType: 'highpass', filterFrequencyHz: 4500, durationMs: 900, gain: 0.3 } },
 ].map((pad) => Object.freeze({ ...pad, sound: Object.freeze(pad.sound) })));

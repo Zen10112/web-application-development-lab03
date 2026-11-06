@@ -1,9 +1,9 @@
 /**
  * @param {{ pad: import('../data/drumPads.js').DrumPad, number: number,
  *   isActive: boolean, onPress: (id: string) => void,
- *   onRelease: (id: string) => void }} props
+ *   onRelease: (id: string) => void, onTrigger: (id: string) => Promise<void> }} props
  */
-export function DrumPad({ pad, number, isActive, onPress, onRelease }) {
+export function DrumPad({ pad, number, isActive, onPress, onRelease, onTrigger }) {
   const release = () => onRelease(pad.id);
 
   return (
@@ -12,6 +12,7 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease }) {
       className={`drum-pad${isActive ? ' is-active' : ''}`}
       aria-label={`${pad.label}, phím ${pad.physicalCode.slice(3)}`}
       aria-pressed={isActive}
+      onClick={() => { void onTrigger(pad.id); }}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -21,7 +22,10 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease }) {
       onPointerCancel={release}
       onLostPointerCapture={release}
       onKeyDown={(event) => {
-        if (event.repeat) return;
+        if (event.repeat) {
+          if (event.key === ' ' || event.key === 'Enter') event.preventDefault();
+          return;
+        }
         if (event.key === ' ' || event.key === 'Enter') onPress(pad.id);
       }}
       onKeyUp={(event) => {
