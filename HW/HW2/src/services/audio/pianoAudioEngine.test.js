@@ -35,11 +35,11 @@ function installContext({ suspended = false, deferred = false, resumeError = fal
     }
     node() {
       const context = this;
-      const node = { connected: false, connect() {
+      const node = { connected: false, disconnectCalls: 0, connect() {
         this.connected = true;
         context.maxConnectedOscillators = Math.max(context.maxConnectedOscillators,
           context.oscillators.filter((osc) => osc.connected).length);
-      }, disconnect() { this.connected = false; } };
+      }, disconnect() { this.connected = false; this.disconnectCalls++; } };
       this.nodes.push(node);
       return node;
     }
@@ -282,4 +282,105 @@ test('100 rapid same-note re-presses never retain more than eight voice node pai
   assert.equal(instances[0].nodes.filter((node) => node.connected).length, 2);
   await engine.dispose();
   assert.ok(instances[0].nodes.every((node) => !node.connected));
+});
+
+test('ninth and tenth notes steal FIFO rather than LIFO; duplicates do not refresh age', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  const original = engine.getVoiceSnapshot();
+  assert.equal(await engine.noteOn(60), original[0].id);
+  await engine.noteOn(72); await engine.noteOn(74);
+  assert.deepEqual(engine.getVoiceSnapshot().map((voice) => voice.midi), [62, 63, 64, 65, 66, 67, 72, 74]);
+  assert.deepEqual(instances[0].oscillators.slice(0, 2).map((osc) => osc.stops.length), [1, 1]);
+  assert.ok(instances[0].oscillators.slice(2).every((osc) => osc.stops.length === 0));
+  engine.noteOff(60); engine.noteOff(61);
+  assert.equal(engine.getVoiceCount(), 8);
+  assert.equal(instances[0].maxConnectedOscillators, 8);
+  await engine.dispose();
+});
+
+test('a completed release frees a slot without leaving a stale FIFO entry', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 68; midi++) await engine.noteOn(midi);
+  engine.noteOff(64);
+  instances[0].oscillators[4].onended();
+  await engine.noteOn(72);
+  assert.deepEqual(engine.getVoiceSnapshot().map((voice) => voice.midi), [60, 61, 62, 63, 65, 66, 67, 72]);
+  assert.equal(instances[0].oscillators[0].stops.length, 0);
+  await engine.noteOn(74);
+  assert.deepEqual(engine.getVoiceSnapshot().map((voice) => voice.midi), [61, 62, 63, 65, 66, 67, 72, 74]);
+  assert.equal(instances[0].oscillators[4].disconnectCalls, 1);
+  await engine.dispose();
+});
+
+test('token-based noteOff from a stolen voice cannot release a newer voice at the same MIDI', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  const oldId = await engine.noteOn(60);
+  for (let midi = 61; midi < 69; midi++) await engine.noteOn(midi);
+  const newId = await engine.noteOn(60);
+  assert.notEqual(oldId, newId);
+  const replacement = instances[0].oscillators.at(-1);
+  engine.noteOff(60, oldId);
+  assert.equal(replacement.stops.length, 0);
+  assert.equal(engine.getVoiceSnapshot().at(-1).state, 'held');
+  engine.noteOff(60, newId);
+  assert.equal(replacement.stops.length, 1);
+  await engine.dispose();
+});
+
+test('repeated noteOff and ended callbacks stop/disconnect a natural release only once', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  const id = await engine.noteOn(60);
+  const osc = instances[0].oscillators[0], gain = instances[0].nodes[3];
+  const ended = osc.onended;
+  engine.noteOff(60, id); engine.noteOff(60, id);
+  ended(); ended(); engine.noteOff(60, id);
+  await engine.dispose(); await engine.dispose();
+  assert.equal(osc.stops.length, 1);
+  assert.equal(osc.disconnectCalls, 1);
+  assert.equal(gain.disconnectCalls, 1);
+  assert.equal(engine.getVoiceCount(), 0);
+});
+
+test('mixed fast noteOn/noteOff and completion preserve sorted unique FIFO entries', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  for (let i = 0; i < 160; i++) {
+    const midi = 48 + i % 24;
+    const id = await engine.noteOn(midi);
+    if (i % 2 === 0) engine.noteOff(midi, id);
+    if (i % 3 === 0) {
+      const releasing = engine.getVoiceSnapshot().find((voice) => voice.state === 'releasing');
+      if (releasing) instances[0].oscillators[releasing.createdOrder - 1].onended?.();
+    }
+    const voices = engine.getVoiceSnapshot();
+    assert.ok(voices.length <= 8);
+    assert.equal(new Set(voices.map((voice) => voice.id)).size, voices.length);
+    assert.deepEqual(voices.map((voice) => voice.createdOrder), voices.map((voice) => voice.createdOrder).toSorted((a, b) => a - b));
+  }
+  assert.ok(instances[0].maxConnectedOscillators <= 8);
+  await engine.dispose();
+  assert.equal(engine.getVoiceCount(), 0);
+  assert.ok(instances[0].nodes.every((node) => !node.connected));
+});
+
+test('unmount disposal clears mixed held/releasing/pending voices without late starts', async () => {
+  const instances = installContext({ deferred: true });
+  const engine = createPianoAudioEngine();
+  for (let midi = 60; midi < 66; midi++) await engine.noteOn(midi);
+  engine.noteOff(62);
+  instances[0].state = 'suspended';
+  const pending = [engine.noteOn(72), engine.noteOn(74), engine.noteOn(76)];
+  assert.equal(engine.getVoiceCount(), 8);
+  const sourceCount = instances[0].oscillators.length;
+  await engine.dispose();
+  instances[0].finishResume(); await Promise.all(pending);
+  assert.equal(instances[0].oscillators.length, sourceCount);
+  assert.equal(engine.getVoiceCount(), 0);
+  assert.ok(instances[0].nodes.every((node) => !node.connected));
+  assert.ok(instances[0].nodes.every((node) => node.disconnectCalls === 1));
 });

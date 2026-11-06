@@ -35,6 +35,18 @@ When the pool is full, the oldest voice is immediately stopped and disconnected 
 
 `getVoiceCount()` reports all reserved/held/releasing slots. `getVoiceSnapshot()` returns detached, frozen metadata in FIFO order (ID, MIDI, creation order/time and state); it does not expose mutable audio nodes. Voice bookkeeping stays outside React state, and no piano UI or note-generation changes are required.
 
+## FIFO voice stealing
+
+Admission removes the first Map entry before reserving a replacement, with no await between eviction and insertion. Duplicate noteOn calls do not change FIFO age. Ended voices are removed rather than left as stale queue entries. Pending resume requests are also reserved in creation order, so evicted requests cannot start late after the context resumes.
+
+`noteOn(midi)` resolves to the voice ID when accepted (or undefined when cancelled before starting). `noteOff(midi)` remains compatible and releases the current voice for that MIDI. For independent owners or a future sequencer, use the returned ID with `noteOff(midi, voiceId)`; an outdated ID cannot release a newer voice with the same MIDI. MIDI alone cannot identify an old owner after the note has been retriggered.
+
+Natural ended callbacks disconnect nodes without issuing another stop. Repeated cleanup is idempotent, clears node references and cannot remove a newer voice. Stealing or disposal can replace an already scheduled release stop with an immediate stop; that deliberate rescheduling enforces the strict eight-voice limit. Normal noteOff still fades over 80ms, while forced stealing can sound more abrupt.
+
+FIFO verification: 30 Node tests passed (9 data/layout, 21 engine), with a successful production build. Added cases check the ninth and tenth replacements, completed release slots, stale same-MIDI identity, repeated noteOff/ended callbacks, 160 interleaved fast operations and disposal with held/releasing/pending voices. Existing 100 repeated-hit and suspended-resume tests also pass.
+
+For the real-browser integration test, open a fresh `/tests/audio.html` and click **Run FIFO integration test**. It mounts the actual React keyboard in StrictMode, plays eight notes, adds the ninth/tenth, releases stolen notes and unmounts. Observed result: PASS, peak connected oscillators 8, retained nodes 0, closed contexts 1; no console errors. The test uses generated keyboard events inside a user-initiated test run. This does not replace physical multi-touch testing, long-duration heap profiling or subjective listening checks. The production piano UI is unchanged.
+
 Polyphony verification: 24 Node tests passed (9 data/layout and 15 engine), along with production build. Tests cover one note, a three-note chord, eight notes, a ninth FIFO replacement, partial noteOff/re-press, late callbacks, 12 pending resume requests and 100 rapid same-note re-presses. Instrumented mocks recorded a peak of eight connected oscillators, including release tails; after ending all voices the pool was empty and only two shared output nodes remained until dispose. These are deterministic resource/lifecycle tests, not a new real-device audio or heap-profile measurement.
 
 Audio verification: 19 Node tests (9 data/layout + 10 engine) and production build passed. Chromium pointer hold/release, repeated A4 clicks, A0 and C8 native Space controls produced no console errors. The real Web Audio lifecycle fixture reported frequencies 27.500, 440.000 and 4186.009Hz in one context. After release only two shared output nodes remained; after unmount the context was closed and the tracked node count was zero. This verifies the tested resource lifecycle, not long-duration heap usage or subjective sound quality.

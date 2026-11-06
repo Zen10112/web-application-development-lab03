@@ -38,32 +38,42 @@ export function createPianoAudioEngine() {
     }
   }
 
-  function cleanup(voice) {
+  function cleanup(voice, shouldStop = true) {
     if (voice.state === 'ended') return;
     voice.state = 'ended';
     voice.cancelled = true;
     if (voice.oscillator) {
       voice.oscillator.onended = null;
-      try { voice.oscillator.stop(); } catch { /* Already ended or not started. */ }
+      if (shouldStop) {
+        try { voice.oscillator.stop(); } catch { /* Already ended or not started. */ }
+      }
       voice.oscillator.disconnect();
     }
     voice.gain?.disconnect();
+    voice.oscillator = null;
+    voice.gain = null;
     voices.delete(voice.id);
     if (active.get(voice.midi) === voice) active.delete(voice.midi);
   }
 
-  async function noteOn(midi) {
-    if (disposed) throw new Error('The Piano Audio Engine has been disposed.');
-    const key = keys.get(midi);
-    if (!key) throw new RangeError('MIDI must be an integer from 21 to 108.');
-    if (active.has(midi)) return;
-    initialize();
+  function reserveVoice(midi) {
+    // No await between eviction and insertion: admission is atomic in this JS turn.
     if (voices.size >= MAX_VOICES) cleanup(voices.values().next().value);
     const order = ++nextVoiceId;
     const voice = { id: `voice-${order}`, midi, createdOrder: order, createdAt: context.currentTime,
       state: 'pending', cancelled: false, oscillator: null, gain: null, startedAt: 0 };
     voices.set(voice.id, voice);
     active.set(midi, voice);
+    return voice;
+  }
+
+  async function noteOn(midi) {
+    if (disposed) throw new Error('The Piano Audio Engine has been disposed.');
+    const key = keys.get(midi);
+    if (!key) throw new RangeError('MIDI must be an integer from 21 to 108.');
+    if (active.has(midi)) return active.get(midi).id;
+    initialize();
+    const voice = reserveVoice(midi);
     try {
       // Resume inside the original user gesture. Concurrent presses share the promise.
       if (context.state !== 'running') {
@@ -84,8 +94,9 @@ export function createPianoAudioEngine() {
       voice.gain.gain.linearRampToValueAtTime(SUSTAIN, voice.startedAt + ATTACK);
       voice.oscillator.connect(voice.gain);
       voice.gain.connect(master);
-      voice.oscillator.onended = () => cleanup(voice);
+      voice.oscillator.onended = () => cleanup(voice, false);
       voice.oscillator.start(voice.startedAt);
+      return voice.id;
     } catch (error) {
       const cancelled = voice.cancelled || disposed;
       cleanup(voice);
@@ -93,9 +104,10 @@ export function createPianoAudioEngine() {
     }
   }
 
-  function noteOff(midi) {
+  // Optional identity protects sequencer/other owners from a stale same-MIDI release.
+  function noteOff(midi, voiceId) {
     const voice = active.get(midi);
-    if (!voice) return;
+    if (!voice || (voiceId !== undefined && voice.id !== voiceId)) return;
     active.delete(midi);
     voice.cancelled = true;
     if (!voice.oscillator) { cleanup(voice); return; }
