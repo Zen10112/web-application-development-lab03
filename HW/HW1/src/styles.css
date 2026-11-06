@@ -1,0 +1,14 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #192235;
+  background: #f5f7fb;
+  line-height: 1.5;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 60rem; margin: auto; padding: 1.5rem; }
+h1 { font-size: clamp(1.6rem, 5vw, 2.5rem); }
+.pad-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 1rem; padding: 0; list-style: none; }
+.pad-list li { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: white; border: 1px solid #69758b; border-radius: 0.5rem; }
+kbd { font: inherit; font-weight: 700; }
