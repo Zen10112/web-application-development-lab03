@@ -27,10 +27,10 @@ Verification on November 6, 2026: `npm test` passed all 6 tests; `npm run build`
 - `src/components/ArenaHeader.tsx`: branding and in-page navigation.
 - `src/components/DropCard.tsx`: semantic reusable card, shared VND formatter, opening time explicitly shown in UTC+7, phase messaging and optional `onClaim(id)` callback.
 - `src/components/DropList.tsx`: renders immutable domain data as cards.
-- `src/components/Arena.tsx`: dashboard composition, mock standings, offline kill-feed placeholder and state preview controls.
+- `src/components/Arena.tsx`: dashboard composition, mock server scenario controls and match-panel integration.
 - `src/styles.css`, `src/main.tsx`, `index.html`: responsive dark esports theme, visible keyboard focus, skip link, page metadata and entry point.
 
-The labeled Mock scenario select defaults to AUTOMATIC, which follows the scheduled opening. The other four options explicitly simulate server phases while the countdown continues showing the fixed mock schedule. LOOTED_OUT exposes zero availability without consuming the underlying inventory; switching scenarios preserves prior successful allocations. Only live, in-stock drops enable Claim. Claims now update shared mock stock, never a real purchase or currency balance. The standings preserve fixture order; no ranking/filter or telemetry logic is implemented yet. Decorative ticket/crate artwork uses CSS only, with no external images, fonts or asset requests.
+The labeled Mock scenario select defaults to AUTOMATIC, which follows the scheduled opening. The other four options explicitly simulate server phases while the countdown continues showing the fixed mock schedule. LOOTED_OUT exposes zero availability without consuming the underlying inventory; switching scenarios preserves prior successful allocations. Only live, in-stock drops enable Claim. Claims update shared mock stock, never a real purchase or currency balance. Standings and kill-feed now support the mock simulation described below. Decorative ticket/crate artwork uses CSS only, with no external images, fonts or asset requests.
 
 UI verification on November 6, 2026:
 
@@ -75,3 +75,24 @@ Claim verification on November 6, 2026:
 - **PASS: normal arena UI**: immediate ticket stock 40→39, pending/scenario locks, confirmed result, and phase guards in all four scenarios. At 375px, page scrollWidth=clientWidth=360px. Browser warning/error logs were empty.
 
 This is a simulated API returning `status: 200/403/409`, not an HTTP server. Network failures and reordered deliveries are controlled test transports, not actual network captures. The authority is shared by clients given the same service instance; it is not shared across browser tabs/devices, has no persistence/authentication/payment integration and resets on reload. Its synchronous `read` is a mock-only reconciliation facility; a future remote backend must provide a corresponding versioned inventory/idempotency endpoint. Real network infrastructure, cross-tab synchronization, assistive technology products and prolonged memory profiling remain NOT TESTED. No real tickets or G-Coin are issued.
+
+## Simulated live leaderboard and kill-feed
+
+- `src/components/PubgLeaderboard.tsx`: semantic table for the four domain squads, derived Total Points (`placementPts + killPts`), all four numeric sort criteria in either direction, and trimmed case-insensitive name search. The selected header exposes aria-sort; labels use useId and results are announced via status text. A focusable horizontal scroll region contains the table on narrow screens.
+- `src/components/KillFeed.tsx`: newest-first elimination events, killer-squad filter, optional-weapon fallback and UTC+7 timestamps. All player aliases are fictional. The event list has a bounded, keyboard-focusable vertical scroll region.
+- `src/domain/matchSelectors.ts`: pure sort/filter/total functions; copied arrays are sorted without mutating domain fixtures. Tied scores use alphabetical squad names and stable IDs. Four squads and at most 50 events are inexpensive to derive directly; no useMemo cache or useEffect-derived-state synchronization is added.
+- `src/domain/pubg-vn-arena-contract.ts`, `src/data/mockMatchData.ts`: readonly kill event contract (`eventId`, `timestamp`, `killer`, `victim`, killer `squadId`, optional `weapon`) and immutable mock fixtures.
+- `src/services/mockMatchSource.ts`: cached immutable snapshots, atomic mock score/event updates, monotonic event IDs and a 50-entry history limit. Every new mock elimination adds one Kill Point to its killer's squad. Event timestamps advance on a fixed fictional match clock; they do not claim to be current real-world events.
+- `src/components/PubgMatchPanel.tsx`: useSyncExternalStore subscription and explicit Next mock update / Start simulation / Pause simulation controls. Auto mode runs every 5 seconds, shares one interval across subscribers, ignores duplicate starts and stops when the last subscriber unmounts. Queued stale ticks cannot restart or change a paused source. Remount preserves the in-memory snapshot in paused mode. An optional source prop supports isolated simulations/tests.
+- `tests/match.test.ts`, `tests/match.html`, `tests/match.tsx`, `tsconfig.json`: selector/data/store tests plus a strict-typechecked React StrictMode fixture with a controlled scheduler. `Arena.tsx` and `styles.css` integrate the panel; Countdown and Claim implementation files are unchanged.
+
+Verification on November 6, 2026:
+
+- **PASS: 43 Node tests**, including 11 new match cases: all squads/totals, each sort criterion and direction on differentiated scores, case-insensitive/empty search, deterministic ties, immutable input, valid kill events, squad filtering/newest-first order, immutable updates, 200 updates with a bounded/unique 50-event history, shared interval cleanup and pause/remount behavior.
+- **PASS: production build and TypeScript strict**, including all three browser fixtures; no new dependencies.
+- **PASS: 8 StrictMode assertions** at `/tests/match.html`: initial render, score/feed update, one interval, one event per tick, pause, unmount/stale-tick guard, remount and unchanged fixtures. Click Run match verification to reproduce; each run gets an isolated source.
+- **PASS: normal UI**: all four criteria, ascending/descending totals, mixed-case name search/no results, each squad's kill-feed filter, manual updates and a real scheduled 5-second update followed by Pause. A manual first update changed The Expendables from 64 to 65 Kill Points and Total Points 112 to 113 while adding its event. Filters stayed applied across updates.
+- **PASS: 375px layout and keyboard focus**: page scrollWidth=clientWidth=360px; table scrollWidth=590px is contained in its 327px scroll viewport. Tab reaches Sort by with a solid visible outline. Labels, column/row headers, selected aria-sort and mock provenance were inspected. No React key warnings or other console warnings/errors were observed.
+- **PASS regressions:** all 12 browser countdown assertions and all 9 browser claim assertions after match-panel integration, in addition to the existing Node cases.
+
+No official live API is connected. Automatic simulation starts only when requested and is clearly labeled; updates are synchronous local mock events, not a network subscription. Actual screen-reader products, cross-browser/device behavior, long-duration heap profiling and Lighthouse remain NOT TESTED. No external assets or dependencies were added.

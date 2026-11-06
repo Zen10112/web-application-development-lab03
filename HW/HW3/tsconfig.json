@@ -12,5 +12,5 @@
     "allowImportingTsExtensions": true,
     "skipLibCheck": true
   },
-  "include": ["src", "tests/timer.tsx", "tests/claims.tsx"]
+  "include": ["src", "tests/timer.tsx", "tests/claims.tsx", "tests/match.tsx"]
 }

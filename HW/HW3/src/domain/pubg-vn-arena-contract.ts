@@ -21,3 +21,14 @@ export interface PubgVnSquadStanding {
   readonly placementPts: number;
   readonly killPts: number;
 }
+
+export interface PubgKillFeedEvent {
+  readonly eventId: string;
+  /** Unix epoch in milliseconds, from the mock match clock. */
+  readonly timestamp: number;
+  readonly killer: string;
+  readonly victim: string;
+  /** Killer's squad ID. */
+  readonly squadId: string;
+  readonly weapon?: string;
+}
