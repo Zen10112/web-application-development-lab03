@@ -90,3 +90,39 @@ document.querySelector('#fifo-test').addEventListener('click', async () => {
     buttons.forEach((button) => { button.disabled = false; });
   }
 });
+
+document.querySelector('#sequence-test').addEventListener('click', async () => {
+  const status = document.querySelector('#diagnostics');
+  if (root || contexts.length) { status.textContent = 'Reload this page before running the integration test.'; return; }
+  const controls = [...document.querySelectorAll('main > button')];
+  controls.forEach((button) => { button.disabled = true; });
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  let failure;
+  try {
+    root = createRoot(document.querySelector('#fixture'));
+    root.render(<StrictMode><PianoKeyboard /></StrictMode>);
+    await wait(60);
+    document.querySelector('.sequencer button').click(); await wait(30);
+    const key = document.querySelectorAll('.piano-key')[39];
+    key.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true, cancelable: true }));
+    await wait(400);
+    key.dispatchEvent(new KeyboardEvent('keyup', { code: 'Enter', bubbles: true, cancelable: true }));
+    document.querySelector('.sequencer button').click(); await wait(40);
+    const buttons = [...document.querySelectorAll('.sequencer button')];
+    buttons[1].click(); await wait(60);
+    assert(key.getAttribute('aria-pressed') === 'true', 'Playback did not activate the recorded key');
+    buttons[2].click(); await wait(40);
+    assert(key.getAttribute('aria-pressed') === 'false', 'Stop left the key active');
+    assert(oscillators.every((osc) => !nodes.has(osc)), 'Stop retained an oscillator');
+    buttons[1].click(); await wait(60);
+    assert(key.getAttribute('aria-pressed') === 'true', 'Replay did not restart');
+  } catch (error) { failure = error.message; }
+  finally {
+    root?.unmount(); root = null;
+    await wait(150);
+    if (nodes.size || contexts.some((ctx) => ctx.state !== 'closed')) failure ??= 'Sequencer unmount leaked audio resources';
+    status.textContent = `${failure ? `FAIL: ${failure}` : 'PASS: recording, replay, Stop and unmount during playback'}; retained nodes: ${nodes.size}; closed contexts: ${contexts.filter((ctx) => ctx.state === 'closed').length}`;
+    controls.forEach((button) => { button.disabled = false; });
+  }
+});

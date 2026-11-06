@@ -1,0 +1,17 @@
+Current-source verification, November 6, 2026.
+npm test: 42 passed, 0 failed (9 data/layout, 22 Audio Engine, 11 sequencer).
+npm run build: passed.
+/tests/verification.html: 4 passed, 0 failed.
+Render-body measurement: 1/88 keys; MIDI 60; 40 calls across 20 transitions in StrictMode.
+Production recording/audio render bodies: 1/88 keys; MIDI 60; 40 calls in StrictMode.
+PASS: semantic click activates and releases exactly one note
+PASS: focus change preserves a held pointer source
+PASS: FIFO chord, ninth/tenth note, stale keyup and React unmount; peak oscillators: 8; retained nodes: 0; closed contexts: 1
+PASS: recording, replay, Stop and unmount during playback; retained nodes: 0; closed contexts: 1
+Browser UI: recording, replay at 1x/2x, 0.5x playback with Stop cancellation checked.
+Geometry: 88 buttons, 52 white, 36 black, 0 measured black-key position errors.
+Mobile viewport: 375; clientWidth=scrollWidth=360 (15px scrollbar); deliberate piano-region scrolling.
+Desktop viewport: 1440; clientWidth=scrollWidth=1425.
+Tab focus: C8, octave 8, MIDI 108; outline solid; piano scrollLeft approximately 2017px on mobile.
+Observed browser console warnings/errors: none in verification and lifecycle fixtures.
+React DevTools Profiler UI, physical multi-touch, full WCAG/Lighthouse and long-duration heap profiling: NOT TESTED.

@@ -128,7 +128,11 @@ export function createPianoAudioEngine() {
     }
   }
 
-  function stopAll() {
+  function stopAll(immediate = false) {
+    if (immediate) {
+      for (const voice of [...voices.values()]) cleanup(voice);
+      return;
+    }
     let firstError;
     for (const midi of [...active.keys()]) {
       try { noteOff(midi); } catch (error) { firstError ??= error; }

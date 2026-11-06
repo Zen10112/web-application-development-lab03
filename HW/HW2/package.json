@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:prepare-browser": "node tests/prepare-render-check.mjs",
     "build": "vite build",
     "test": "node --test src/data/*.test.js src/services/audio/*.test.js",
     "preview": "vite preview"

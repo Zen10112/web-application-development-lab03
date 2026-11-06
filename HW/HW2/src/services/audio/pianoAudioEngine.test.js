@@ -384,3 +384,16 @@ test('unmount disposal clears mixed held/releasing/pending voices without late s
   assert.ok(instances[0].nodes.every((node) => !node.connected));
   assert.ok(instances[0].nodes.every((node) => node.disconnectCalls === 1));
 });
+
+test('immediate Stop clears release tails as well as held notes without closing the shared context', async () => {
+  const instances = installContext();
+  const engine = createPianoAudioEngine();
+  await engine.noteOn(60); await engine.noteOn(64);
+  engine.noteOff(60); engine.stopAll(true);
+  assert.equal(engine.getVoiceCount(), 0);
+  assert.equal(instances[0].nodes.filter((node) => node.connected).length, 2);
+  assert.equal(instances[0].closeCalls, 0);
+  await engine.noteOn(69);
+  assert.equal(engine.getVoiceCount(), 1);
+  await engine.dispose();
+});

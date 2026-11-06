@@ -1,6 +1,6 @@
 # HW2 — 88-Key Polyphonic Piano & Concurrent FIFO Sequencer
 
-Current scope: piano key data, keyboard UI and basic synthesized audio. Follow `../project-rules.md`.
+Current scope: piano data, memoized keyboard UI, eight-voice FIFO synthesis, recording and replay. Follow `../project-rules.md`.
 
 ```sh
 npm install
@@ -15,7 +15,7 @@ Each key contains `id`, `midi`, `noteName` (including octave, using sharps), `oc
 
 `src/data/pianoLayout.js` assigns white-key slots and centers each black key at its neighboring white-key boundary. `PianoKeyboard` renders all keys in MIDI order; reusable `PianoKey` buttons receive stable note data, a pressed boolean and shared callbacks. Native Enter/Space and pointer input update visual state; blur/hidden-document events clear held inputs. The scrollable keyboard region intentionally exceeds small screens while the page stays within the viewport. Tab focuses and reveals each note, including the final C8 key.
 
-The eight-voice FIFO pool is implemented. Recording and replay are not implemented yet. React.memo is not applied in this step; the component props are prepared for it. No additional library is required; tests use Node's built-in test runner.
+The eight-voice FIFO pool, recording/replay and React.memo key isolation are implemented. No additional library is required; tests use Node's built-in test runner.
 
 ## Basic Audio Engine
 
@@ -51,4 +51,44 @@ Polyphony verification: 24 Node tests passed (9 data/layout and 15 engine), alon
 
 Audio verification: 19 Node tests (9 data/layout + 10 engine) and production build passed. Chromium pointer hold/release, repeated A4 clicks, A0 and C8 native Space controls produced no console errors. The real Web Audio lifecycle fixture reported frequencies 27.500, 440.000 and 4186.009Hz in one context. After release only two shared output nodes remained; after unmount the context was closed and the tracked node count was zero. This verifies the tested resource lifecycle, not long-duration heap usage or subjective sound quality.
 
-UI verification: 9 Node tests and production build passed. Chromium rendered 88 buttons (52 white / 36 black); every black-key center matched the shared boundary of its neighboring white keys. Held Space updated aria-pressed and released cleanly. Desktop 1440px and mobile 375px were inspected. On mobile, page scrollWidth equaled clientWidth while the piano region scrolled independently; Tab to C8 revealed the final key. No console errors or React key warnings were observed. Audio and render-isolation profiling are outside this step.
+Earlier UI verification passed 9 data/layout tests and the production build. The final verification below supersedes the earlier scope limits.
+
+## Recording and concurrent FIFO replay
+
+Use Record, play a phrase, then Finish recording. Recording stores `{ midi, freqHz, durationMs, deltaMs }` in onset order, including overlapping notes. The first note starts immediately during replay; later onset deltas and durations are scaled at 0.5×, 1× or 2×. A single ordered event timeline handles concurrent note-on/note-off events without waiting for each note to end before starting another. Timing uses absolute performance-clock targets and abortable waits; it is browser-timer scheduling, not sample-accurate offline rendering.
+
+Stop sequence aborts the run, cancels pending waits and immediately silences held/releasing audio resources. Unmount does the same and closes the context through the audio hook. Late callbacks from a cancelled run cannot clear a replacement run. Live playing stops replay before starting a manual note; playback is disabled while live keys remain held to avoid competing ownership of the same MIDI. Recording is limited to 1000 notes and kept in memory only. No export, persistence, pedal or velocity editing is implemented.
+
+## Final verification (November 6, 2026)
+
+- **PASS:** 42 Node tests: 9 data/layout, 22 Audio Engine and 11 sequencer cases; production build passes.
+- **PASS:** 4 browser interaction/render cases, one real Web Audio FIFO/unmount integration test and one real recording/replay/Stop/unmount integration test. Node tests mock AudioContext or the clock where stated; browser tests use Chromium and real Web Audio.
+- **PASS:** 88 native buttons, MIDI 21–108, 52 white/36 black, zero measured black-key boundary-position errors. At 375px, page scrollWidth=clientWidth=360px (15px scrollbar); only the piano region overflows horizontally. Desktop 1440px page metrics also show no outer overflow. Tab to C8 scrolls it into view with a solid focus indicator. No console warnings/errors were observed.
+- **PASS:** frozen module-level key data and useCallback handlers provide stable key props. PianoKey uses React.memo; derived held-note names use useMemo. An instrumented copy of the actual production key/keyboard source measured only C4 rendering over 20 press/release transitions, including recording/audio updates: 1/88 key bodies, 40 C4 render calls under development StrictMode. Baseline 4da5ad4 rendered all 88 key bodies.
+- **PASS:** React's Profiler API was also mounted, but its outer per-key boundaries include bailout overhead. Their callback count/duration was not used as a component render count.
+- **NOT TESTED:** React DevTools Profiler UI, real screen-reader/voice-control combinations, physical multi-touch, long-duration heap growth, exhaustive cross-browser/OS testing and full WCAG certification. No Lighthouse score is claimed for HW2.
+- **FAIL before fixes, PASS after:** semantic click without pointer/key events did nothing; focus loss incorrectly released a held pointer; missing memo isolation did not satisfy the full HW2 performance target. See the audit for the distinction between bugs and a previously deferred performance requirement.
+
+### Reproduce browser measurements
+
+```sh
+npm run test:prepare-browser
+npm run dev
+```
+
+Open `/tests/verification.html` and run verification. The preparation script generates ignored test-only copies of the actual source with render-body counters; it does not alter production source or React.memo behavior. Use `node tests/prepare-render-check.mjs --baseline` to reproduce the three original findings against Git commit 4da5ad4, then regenerate current source before testing the final version.
+
+Open a fresh `/tests/audio.html` separately for each integration button: **Run FIFO integration test** and **Run sequencer lifecycle test**. The first measured peak oscillators=8, retained nodes=0 and closed contexts=1. The second verified Stop and unmount during replay with retained nodes=0 and closed contexts=1.
+
+Development history and evidence: [TASK_DECOMPOSITION.md](TASK_DECOMPOSITION.md), [AI_FAILURE_AUDIT.md](AI_FAILURE_AUDIT.md), and `reports/verification-before.txt` / `reports/verification-after.txt`. The existing parent project-rules.md is unchanged.
+
+| Requested group | Result | Scope |
+| --- | --- | --- |
+| A — Piano data and UI | PASS | Counts, MIDI/frequency, key geometry, accessible names, focus and isolated mobile scrolling checked |
+| B — Audio and concurrency | PASS | Eight-voice/FIFO/race/cleanup assertions and real AudioContext lifecycle; long-duration heap profiling NOT TESTED |
+| C — React performance | PASS within measured scope | Actual-source render-body isolation measured; React DevTools Profiler UI NOT TESTED |
+| D — Build and automated tests | PASS | 42 Node cases, four interaction/render cases, two real-browser lifecycle scenarios and production build |
+| Sequencer scope extension | PASS | Recording, overlapping FIFO timeline, all three speeds, immediate Stop and abort/unmount tested |
+| E/F — Task decomposition and AI audit | Completed | Real Git history and baseline evidence; audit explicitly counts two interaction bugs and a deferred performance gap |
+
+No executed final assertion remains FAIL. Full WCAG, native assistive technology and all device-specific behavior remain NOT TESTED rather than being inferred from other passing results.

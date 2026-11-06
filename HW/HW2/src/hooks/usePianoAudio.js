@@ -27,20 +27,21 @@ export function usePianoAudio() {
     const engine = engineRef.current;
     if (!engine) return;
     try {
-      await engine.noteOn(midi);
+      const voiceId = await engine.noteOn(midi);
       if (engineRef.current === engine && errorRef.current !== null) {
         errorRef.current = null;
         setAudioError(null);
       }
+      return voiceId;
     } catch (error) { if (engineRef.current === engine) reportError(error); }
   }, [reportError]);
 
-  const noteOff = useCallback((midi) => {
-    try { engineRef.current?.noteOff(midi); } catch (error) { reportError(error); }
+  const noteOff = useCallback((midi, voiceId) => {
+    try { engineRef.current?.noteOff(midi, voiceId); } catch (error) { reportError(error); }
   }, [reportError]);
 
-  const stopAll = useCallback(() => {
-    try { engineRef.current?.stopAll(); } catch (error) { reportError(error); }
+  const stopAll = useCallback((immediate = false) => {
+    try { engineRef.current?.stopAll(immediate); } catch (error) { reportError(error); }
   }, [reportError]);
 
   return { noteOn, noteOff, stopAll, audioError };

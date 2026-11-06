@@ -35,6 +35,13 @@ h1 span { color: var(--accent); }
 .piano-key:focus-visible { outline-offset: -4px; }
 .keyboard-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 20px; font-size: 11px; color: #b8c8be; overflow-wrap: anywhere; }
 .held-note { color: var(--accent); }
+.sequencer { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 20px 0; }
+.sequencer button, .sequencer select { min-height: 44px; border: 1px solid #91a79b; border-radius: 5px; background: #18271e; color: #e9f1ec; padding: 8px 12px; font: inherit; font-size: 13px; }
+.sequencer button { cursor: pointer; }
+.sequencer button[aria-pressed="true"] { color: #122218; background: #b7e7cc; }
+.sequencer :disabled { color: #aab7af; border-color: #647268; cursor: default; }
+.sequencer output, .sequencer label { font-size: 13px; }
+.sequencer output { flex-basis: 100%; color: #c1d4c8; }
 .audio-error { color: #ffd9d0; background: #422b26; border: 1px solid #bf8578; padding: 12px 16px; border-radius: 8px; }
 .studio-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 40px; padding: 24px 0; border-top: 1px solid #39453f; color: var(--muted); font-size: 10px; letter-spacing: 1px; }
 @media (max-width: 700px) { .studio { padding: 0 20px; } .studio-header { min-height: 80px; } .series-label { display: none; } .page-intro { padding: 36px 0 28px; } .piano-console { padding: 16px; } .keyboard-keys { height: 225px; } }

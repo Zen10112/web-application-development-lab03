@@ -1,0 +1,11 @@
+Baseline source: Git 4da5ad4, November 6, 2026.
+Generated with: node tests/prepare-render-check.mjs --baseline
+Browser: /tests/verification.html, first three cases.
+0 passed, 3 failed
+FAIL: one key update isolates renders: Rendered key bodies: 88; target calls: 40
+FAIL: semantic click activates and releases exactly one note: semantic click: 0 callbacks
+FAIL: focus change preserves a held pointer source: blur released the held pointer
+
+Outer React Profiler boundary durations were initially investigated but are not used
+as render counts because they include bailout overhead. The values above are actual
+render-body counters inserted in ignored copies of the real source, not React state.
