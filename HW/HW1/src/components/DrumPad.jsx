@@ -19,9 +19,9 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease, onTrigger,
     heldInputs.current.delete(input);
     if (heldInputs.current.size === 0) onRelease(pad.id);
   };
-  const reset = () => {
-    heldInputs.current.clear();
-    onRelease(pad.id);
+  const releaseKeyboardInputs = () => {
+    for (const code of ['Enter', 'NumpadEnter', 'Space']) heldInputs.current.delete(code);
+    if (heldInputs.current.size === 0) onRelease(pad.id);
   };
   useEffect(() => {
     const clear = () => {
@@ -66,7 +66,7 @@ export function DrumPad({ pad, number, isActive, onPress, onRelease, onTrigger,
       onKeyUp={(event) => {
         if (event.code === 'Space' || event.code === 'Enter' || event.code === 'NumpadEnter') release(event.code);
       }}
-      onBlur={reset}
+      onBlur={releaseKeyboardInputs}
     >
       <span className="pad-number" aria-hidden="true">{String(number).padStart(2, '0')}</span>{' '}
       <kbd className="pad-key" aria-hidden="true">{pad.physicalCode.slice(3)}</kbd>{' '}
