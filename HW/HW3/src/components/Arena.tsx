@@ -1,19 +1,15 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { MOCK_ARENA_DATA } from '../data/mockArenaData';
 import { DROP_PHASES, type DropPhase } from '../domain/pubg-vn-arena-contract';
 import { ArenaHeader } from './ArenaHeader';
 import { DropList } from './DropList';
+import { useDropClaims } from '../hooks/useDropClaims';
 
 export function Arena() {
   const phaseId = useId();
-  const [phase, setPhase] = useState<DropPhase | 'AUTO'>('AUTO');
-  const [notice, setNotice] = useState('No claims are submitted in this UI preview.');
-  const previewDrops = phase === 'LOOTED_OUT'
-    ? MOCK_ARENA_DATA.drops.map((drop) => ({ ...drop, remainingStock: 0 })) : MOCK_ARENA_DATA.drops;
-  const claimPreview = (id: string) => {
-    const drop = MOCK_ARENA_DATA.drops.find((item) => item.id === id);
-    setNotice(`Preview only: ${drop?.title}. No purchase or stock change was made.`);
-  };
+  const claims = useDropClaims();
+  const phase = claims.scenario ?? 'AUTO';
+  const drops = MOCK_ARENA_DATA.drops.map((drop) => ({ ...drop, remainingStock: claims.states[drop.id].displayedStock }));
 
   return (
     <>
@@ -31,15 +27,18 @@ export function Arena() {
         <section id="drops" aria-labelledby="drops-title">
           <header className="section-heading"><h2 id="drops-title"><span>01 /</span> THE DROP ZONE</h2><span>VIP ACCESS & G-COIN</span></header>
           <section className="preview-toolbar" aria-label="Drop state preview">
-            <p><strong>Mock schedule / UI preview</strong><span>Automatic follows the opening time. Other options override the badge for UI testing.</span></p>
-            <label htmlFor={phaseId}>Preview state</label>
-            <select id={phaseId} value={phase} onChange={(event) => { setPhase(event.target.value as DropPhase | 'AUTO'); setNotice('No claims are submitted in this UI preview.'); }}>
+            <p><strong>Mock inventory / server scenario</strong><span>Automatic follows the schedule. Other options simulate server phases; claims affect mock stock only.</span></p>
+            <label htmlFor={phaseId}>Mock scenario</label>
+            <select id={phaseId} value={phase} disabled={claims.isPending} onChange={(event) => {
+              const value = event.target.value as DropPhase | 'AUTO';
+              claims.setScenario(value === 'AUTO' ? undefined : value);
+            }}>
               <option value="AUTO">AUTOMATIC</option>
               {DROP_PHASES.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
             </select>
           </section>
-          <DropList drops={previewDrops} previewPhase={phase === 'AUTO' ? undefined : phase} onClaim={claimPreview} />
-          <p className="claim-notice" role="status">{notice}</p>
+          <DropList drops={drops} previewPhase={phase === 'AUTO' ? undefined : phase} onClaim={claims.claim} claimStates={claims.states} />
+          <p className="claim-notice">Shared in-memory mock inventory · resets on page reload · no real purchase or currency transfer.</p>
         </section>
         <section className="arena-intel" aria-label="Squad intelligence">
           <section id="leaderboard" aria-labelledby="standings-title">

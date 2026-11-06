@@ -72,6 +72,8 @@ select { background: #101510; color: var(--lime); border: 1px solid #596343; pad
 .claim-button:active:not(:disabled) { transform: translateY(1px); }
 .claim-button:disabled { background: #292f25; color: #c3cbba; border-color: #4d5743; }
 .claim-notice { min-height: 18px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.claim-result { color: var(--lime); font-size: 12px; line-height: 1.6; margin-bottom: 0; min-height: 20px; }
+.claim-result--error { color: #f5b3aa; }
 .arena-intel { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: 28px; margin: 34px 0 48px; }
 .arena-intel > section { min-width: 0; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); background: #171b18; }
